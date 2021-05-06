@@ -1,6 +1,0 @@
-framework module Pods_HNMediaPlayer {
-  umbrella header "Pods-HNMediaPlayer-umbrella.h"
-
-  export *
-  module * { export * }
-}
