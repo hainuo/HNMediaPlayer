@@ -89,7 +89,7 @@
 	_player = nil;
 }
 
-#pragma mark - MCSAssertExporter
+#pragma mark - MCSAssertExporter delegate
 - (void)exporter:(id<MCSAssetExporter>)exporter statusDidChange:(MCSAssetExportStatus)status {
 	NSLog(@"exporterStatus %@  %lu",exporter.URL,(unsigned long)status);
 	[self _updateVideo:exporter];
@@ -223,7 +223,9 @@
 	return [SJMediaCacheServer.shared exportAssetWithURL:url];
 }
 
-#pragma mark - HNMediaPlayer init
+
+
+#pragma mark - HNMediaPlayer method
 JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 
 	_player = SJVideoPlayer.player;
@@ -233,148 +235,170 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 	return @NO;
 }
 
+
 JS_METHOD(play:(UZModuleMethodContext *)context) {
-	if(_player) {
-		[_player stop];
-		_player = nil;
-	}
-	_player = SJVideoPlayer.player;
-
-	NSDictionary *param = context.param;
-	NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
-	NSString *headers = [param stringValueForKey:@"headers" defaultValue:nil];
-	NSString *fixedOn = [param stringValueForKey:@"fixedOn" defaultValue:nil];
-	NSDictionary *rect = [param dictValueForKey:@"rect" defaultValue:@{}];
-	NSString *referrer = [param stringValueForKey:@"referrer" defaultValue:nil];
+    if(_player){
+        [_player stop];
+    }
+    NSDictionary *param = context.param;
+    NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
+    NSString *headers = [param stringValueForKey:@"headers" defaultValue:nil];
+    NSString *fixedOn = [param stringValueForKey:@"fixedOn" defaultValue:nil];
+    NSDictionary *rect = [param dictValueForKey:@"rect" defaultValue:@{}];
+    NSString *referrer = [param stringValueForKey:@"referrer" defaultValue:nil];
     NSString *userAgent = [param stringValueForKey:@"userAgent" defaultValue:nil];
-	NSLog(@"rect %@",rect);
-	url = [url stringByRemovingPercentEncoding];
-	NSLog(@"初始headers %@",headers);
-	NSLog(@"url %@",url);
-	url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
-	NSLog(@"url %@",url);
+    BOOL isLandscape = [param boolValueForKey:@"isLandscape" defaultValue:NO];
+    NSLog(@"rect %@",rect);
+    
+    NSLog(@"初始headers %@",headers);
+    //不再对url进行任何处理 所有传入的url必须是正常的url也就是 经过urlencode转移过 query参数的url
+//    url = [url stringByRemovingPercentEncoding];
+//    NSLog(@"url %@",url);
+//    url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
+    NSLog(@"url %@",url);
+    
+    BOOL fixed = [param boolValueForKey:@"fixed" defaultValue:YES];
 
-	BOOL fixed = [param boolValueForKey:@"fixed" defaultValue:YES];
-	float x = [rect floatValueForKey:@"x" defaultValue:0];
-	float y = [rect floatValueForKey:@"y" defaultValue:0];
-	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
-	float height = [rect floatValueForKey:@"height" defaultValue:300];
+        float x = [rect floatValueForKey:@"x" defaultValue:0];
+        float y = [rect floatValueForKey:@"y" defaultValue:0];
+        float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
+        float height = [rect floatValueForKey:@"height" defaultValue:300];
+      
 
-	SJVideoPlayerURLAsset *asset;
-	if(referrer) {
-
-		NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
-		MGheaders[@"referer"] = referrer;
+    _player = SJVideoPlayer.player;
+    SJVideoPlayerURLAsset *asset;
+    if(referrer){
+        NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
+        [MGheaders setObject:referrer forKey:@"referrer"];
         if(userAgent){
+            
             [MGheaders setObject:userAgent forKey:@"user-agent"];
         }
-		AVURLAsset *avUrlAsset;
-		avUrlAsset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:url] options:@{@"AVURLAssetHTTPHeaderFieldsKey": MGheaders}];
+        AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:url] options:@{@"AVURLAssetHTTPHeaderFieldsKey" : MGheaders}];
+        
+        asset = [[SJVideoPlayerURLAsset alloc] initWithAVAsset:avUrlAsset];
+//        if(!headers){
+//            headers = [NSString stringWithFormat:@"referer:%@\r\nuser-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36\r\n" ,referrer];
+//        }
+        
+    }else{
+        asset = [SJVideoPlayerURLAsset.alloc initWithURL:[NSURL URLWithString:url]];
+    }
+    NSLog(@"当前使用referre %@",referrer);
+    NSLog(@"ret %@",asset);
+    _player.view.frame = CGRectMake(x,y,width,height);
+//    NSRange rangeBilibili=[url rangeOfString:@"bilibili"];
+    if(headers){
+        SJIJKMediaPlaybackController *controller = SJIJKMediaPlaybackController.new;
+        IJKFFOptions *options = [IJKFFOptions optionsByDefault];
+        if(headers){
+            [options setFormatOptionValue:headers forKey:@"headers"];
+        }
+        controller.options = options;
+        
+        _player.playbackController = controller;
+        NSLog(@"当前使用的播放器为IJKPLayer");
+    }else{
+        NSLog(@"当前使用的播放器为SJVideoPlayer");
+    }
+    NSLog(@"最终headers %@",headers);
+//    NSRange rangeMgtv=[url rangeOfString:@"mgtv"];
+    
+    [_player.defaultEdgeControlLayer loadingView];
+    _player.URLAsset = asset;
+    _player.resumePlaybackWhenAppDidEnterForeground = YES;
+    _player.defaultEdgeControlLayer.fixesBackItem = NO;
+    _player.defaultEdgeControlLayer.showsMoreItem = YES;
+    _player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
+    _player.rotationManager.disabledAutorotation = YES;
+    if(isLandscape){
+        NSLog(@"-90999-9-09-090-9-09-09-9-0");
+        _player.autoManageViewToFitOnScreenOrRotation = NO;
+        _player.useFitOnScreenAndDisableRotation = YES;
+    }
+    
+    if (@available(iOS 14.0, *)) {
+        _player.defaultEdgeControlLayer.automaticallyShowsPictureInPictureItem = NO;
+    } else {
+        // Fallback on earlier versions
+    }
+    _player.view.backgroundColor = UIColor.blackColor;
+    _player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
+        NSLog(@"currentTimeDidChangeExeBlock %@",player);
+        NSDictionary *info =
+        @{
+            @"type":@"currentTimeChanged",
+            MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
+            MPMediaItemPropertyPlaybackDuration:@(player.duration),
+            MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
+        };
+        NSDictionary *ret = @{@"info":info};
+        [context callbackWithRet:ret err:nil delete:YES];
+    };
+    _player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
+        
+            NSLog(@"durationDidChangeExeBlock %@",player);
+        NSDictionary *info =
+        @{
+            @"type":@"durationChanged",
+            MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
+            MPMediaItemPropertyPlaybackDuration:@(player.duration),
+            MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
+        };
+        NSDictionary *ret = @{@"info":info};
+        [context callbackWithRet:ret err:nil delete:YES];
+    };
+    _player.playbackObserver.timeControlStatusDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
+        NSLog(@"timeControlStatusChange %@",player);
+        NSDictionary *info =
+        @{
+            @"type":@"timeControlStatusChanged",
+            MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
+            MPMediaItemPropertyPlaybackDuration:@(player.duration),
+            MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
+//            @"timeWatched":@(player.durationWatched)
+        };
+        NSDictionary *ret = @{@"info":info};
+        [context callbackWithRet:ret err:nil delete:YES];
+    };
+    
+    
+    //画面水平翻转
+//    [_player.flipTransitionManager setFlipTransition:SJViewFlipTransition_Horizontally animated:YES];
+    [self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
+    
 
-		asset = [[SJVideoPlayerURLAsset alloc] initWithAVAsset:avUrlAsset];
+    [_player play];
+    
 
-	}else{
-		asset = [SJVideoPlayerURLAsset.alloc initWithURL:[NSURL URLWithString:url]];
-	}
-	NSLog(@"当前使用referre %@",referrer);
-	if(headers) {
-		SJIJKMediaPlaybackController *controller = SJIJKMediaPlaybackController.new;
-		IJKFFOptions *options = [IJKFFOptions optionsByDefault];
-		if(headers) {
-			[options setFormatOptionValue:headers forKey:@"headers"];
-		}
-		controller.options = options;
-
-		_player.playbackController = controller;
-		NSLog(@"当前使用的播放器为IJKPLayer");
-	}else{
-		NSLog(@"当前使用的播放器为SJVideoPlayer");
-	}
-	NSLog(@"最终headers %@",headers);
-	_player.URLAsset = asset;
-
-
-	_player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
-	_player.defaultEdgeControlLayer.fixesBackItem = NO;
-	_player.defaultEdgeControlLayer.showsMoreItem = YES;
-	_player.resumePlaybackWhenAppDidEnterForeground = YES;
-    _player.autoManageViewToFitOnScreenOrRotation = NO;
-    _player.useFitOnScreenAndDisableRotation = YES;
-
-
-	if (@available(iOS 14.0, *)) {
-		_player.defaultEdgeControlLayer.automaticallyShowsPictureInPictureItem = NO;
-	} else {
-		// Fallback on earlier versions
-	}
-	_player.view.backgroundColor = UIColor.blackColor;
-
-	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
-
-	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
-	        NSDictionary *info =
-			@{
-	                @"type":@"currentTimeChanged",
-	                MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
-	                MPMediaItemPropertyPlaybackDuration:@(player.duration),
-	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
-		};
-	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:YES];
-
-	};
-	_player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
-
-	        NSLog(@"durationDidChangeExeBlock %@",player);
-	        NSDictionary *info =
-			@{
-	                @"type":@"durationChanged",
-	                MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
-	                MPMediaItemPropertyPlaybackDuration:@(player.duration),
-	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
-		};
-	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:NO];
-	};
-
-	//根据手机自动旋转
-//    typedef enum : NSUInteger {
-//        SJOrientationMaskPortrait = 1 << SJOrientation_Portrait,
-//        SJOrientationMaskLandscapeLeft = 1 << SJOrientation_LandscapeLeft,
-//        SJOrientationMaskLandscapeRight = 1 << SJOrientation_LandscapeRight,
-//        SJOrientationMaskAll = SJOrientationMaskPortrait | SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight,
-//    } SJOrientationMask;
-    _player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
-
-	_player.view.frame = CGRectMake(x,y,width,height);
-	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
-
-	[_player play];
 }
-JS_METHOD_SYNC(stop:(UZModuleMethodContext *)context){
-	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
-	}
-	[_player stop];
-	_player = nil;
 
-	return @{@"msg":@"已停止播放！",@"code":@1};
+
+JS_METHOD_SYNC(stop:(UZModuleMethodContext *)context){
+    if(!_player) {
+        return @{@"msg":@"没有找到播放器",@"code":@0};
+    }
+    [_player stop];
+    _player = nil;
+
+    return @{@"msg":@"已停止播放！",@"code":@1};
 }
 
 JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
-	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
-	}
-	[_player pauseForUser];
+    if(!_player) {
+        return @{@"msg":@"没有找到播放器",@"code":@0};
+    }
+    [_player pauseForUser];
 
-	if(_player.isUserPaused) {
-		return @{@"status":@"success",@"msg":@"暂停成功！",@"code":@1};
-	}
-	if(_player.isPaused) {
-		return @{@"msg":@"视频已是暂停状态！",@"code":@-1};
-	}
-	return @{@"msg":@"操作出错！",@"code":@-1};
+    if(_player.isUserPaused) {
+        return @{@"status":@"success",@"msg":@"暂停成功！",@"code":@1};
+    }
+    if(_player.isPaused) {
+        return @{@"msg":@"视频已是暂停状态！",@"code":@-1};
+    }
+    return @{@"msg":@"操作出错！",@"code":@-1};
 }
+
 JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
     if(!_player) {
         return @{@"msg":@"没有找到播放器",@"code":@0};
@@ -398,16 +422,18 @@ JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
     }
     return @{@"msg":@"播放成功！",@"type":@"played",@"code":@1};
 }
-JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
-	if(!_player) {
-		return @{@"err":@{@"msg":@"没有找到播放器",@"code":@0}};
-	}
 
-	if(_player.isUserPaused || _player.isPaused) {
-		return @{@"ret":@{@"status":@"success",@"msg":@"暂停成功！",@"code":@1}};
-	}
-	return @{@"err":@{@"msg":@"播放器不是暂停状态",@"code":@-1}};
+JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
+    if(!_player) {
+        return @{@"err":@{@"msg":@"没有找到播放器",@"code":@0}};
+    }
+
+    if(_player.isUserPaused || _player.isPaused) {
+        return @{@"ret":@{@"status":@"success",@"msg":@"暂停成功！",@"code":@1}};
+    }
+    return @{@"err":@{@"msg":@"播放器不是暂停状态",@"code":@-1}};
 }
+
 /**
    是否调用过play接口
  */
@@ -421,6 +447,7 @@ JS_METHOD_SYNC(isPlayed:(UZModuleMethodContext *)context){
 	}
 	return @{@"msg":@"播放器没有调用过play接口",@"code":@-1};
 }
+
 /**
    是否播放中
  */
@@ -439,16 +466,18 @@ JS_METHOD_SYNC(isPlaying:(UZModuleMethodContext *)context){
    是否播放结束
  */
 JS_METHOD_SYNC(isPlaybackFinished:(UZModuleMethodContext *)context){
-	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
-	}
+    if(!_player) {
+        return @{@"msg":@"没有找到播放器",@"code":@0};
+    }
 
-	if(_player.isPlaybackFinished) {
-		return @{@"status":@"success",@"msg":@"播放结束",@"reason":_player.finishedReason,@"code":@1};
-	}
-	return @{@"msg":@"播放没有结束",@"code":@-1};
+    if(_player.isPlaybackFinished) {
+        return @{@"status":@"success",@"msg":@"播放结束",@"reason":_player.finishedReason,@"code":@1};
+    }
+    return @{@"msg":@"播放没有结束",@"code":@-1};
 }
 
+
+#pragma mark m3u8download
 
 JS_METHOD_SYNC(download:(UZModuleMethodContext *)context){
 	NSDictionary *param = context.param;
@@ -527,11 +556,11 @@ JS_METHOD_SYNC(download:(UZModuleMethodContext *)context){
 		NSLog(@"err %@",err);
 		return @{@"msg":@"缓存信息有误！",@"code":@-1};
 	}
-	NSInteger *item_id = NULL;
+	NSInteger *item_id = nil;
 	if(items && items.count>0) {
 		HNVideoItem *item = items[0];
-		item_id = (NSInteger *)item.id;
-		videoItem.id = (int)item_id;
+		item_id = (long *) item.id;
+        videoItem.id = *(item_id);
 	}else{
 		if(videoItem.list_id>0) {
 			[self.sqlite3 save:videoItem error:&err];
@@ -547,6 +576,7 @@ JS_METHOD_SYNC(download:(UZModuleMethodContext *)context){
 	}
 	return @{@"msg":@"添加成功",@"code":@0};
 }
+
 JS_METHOD(playDownloadUrl:(UZModuleMethodContext *)context){
 	if(_player) {
 		[_player stop];
