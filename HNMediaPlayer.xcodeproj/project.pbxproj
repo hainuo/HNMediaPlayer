@@ -1,0 +1,391 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A9FFF30BB5C661C80B86BE5C /* Pods_HNMediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C362609A03F009823E1 /* HNVideoItem.m */; };
+		FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C392609A03F009823E1 /* HNVideoList.m */; };
+		FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C422609A03F009823E1 /* HNMediaPlayer.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FC556F8425F715A2009CF91D /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		222B8123BF15C1B9D8204DE2 /* Pods-HNMediaPlayer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-HNMediaPlayer.debug.xcconfig"; path = "Target Support Files/Pods-HNMediaPlayer/Pods-HNMediaPlayer.debug.xcconfig"; sourceTree = "<group>"; };
+		714F7ED61AEAC6B77A2AB5EA /* Pods-HNMediaPlayer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-HNMediaPlayer.release.xcconfig"; path = "Target Support Files/Pods-HNMediaPlayer/Pods-HNMediaPlayer.release.xcconfig"; sourceTree = "<group>"; };
+		AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_HNMediaPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC556F8625F715A2009CF91D /* libHNMediaPlayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libHNMediaPlayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		FCA52C362609A03F009823E1 /* HNVideoItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNVideoItem.m; sourceTree = "<group>"; };
+		FCA52C372609A03F009823E1 /* HNVideoList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HNVideoList.h; sourceTree = "<group>"; };
+		FCA52C382609A03F009823E1 /* HNVideoItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HNVideoItem.h; sourceTree = "<group>"; };
+		FCA52C392609A03F009823E1 /* HNVideoList.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNVideoList.m; sourceTree = "<group>"; };
+		FCA52C3A2609A03F009823E1 /* HNMediaPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HNMediaPlayer.h; sourceTree = "<group>"; };
+		FCA52C3C2609A03F009823E1 /* UIViewControllerExtension.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIViewControllerExtension.h; sourceTree = "<group>"; };
+		FCA52C3D2609A03F009823E1 /* UZURLTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UZURLTask.h; sourceTree = "<group>"; };
+		FCA52C3E2609A03F009823E1 /* UZModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UZModule.h; sourceTree = "<group>"; };
+		FCA52C3F2609A03F009823E1 /* UZAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UZAppDelegate.h; sourceTree = "<group>"; };
+		FCA52C402609A03F009823E1 /* UZAppUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UZAppUtils.h; sourceTree = "<group>"; };
+		FCA52C412609A03F009823E1 /* NSDictionaryUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSDictionaryUtils.h; sourceTree = "<group>"; };
+		FCA52C422609A03F009823E1 /* HNMediaPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNMediaPlayer.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FC556F8325F715A2009CF91D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9FFF30BB5C661C80B86BE5C /* Pods_HNMediaPlayer.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		21FBD21291DEDC25E00C50C2 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				222B8123BF15C1B9D8204DE2 /* Pods-HNMediaPlayer.debug.xcconfig */,
+				714F7ED61AEAC6B77A2AB5EA /* Pods-HNMediaPlayer.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		DAFBBE14854E2F7D29C9F615 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FC556F7D25F715A2009CF91D = {
+			isa = PBXGroup;
+			children = (
+				FCA52C342609A03F009823E1 /* HNMediaPlayer */,
+				FC556F8725F715A2009CF91D /* Products */,
+				21FBD21291DEDC25E00C50C2 /* Pods */,
+				DAFBBE14854E2F7D29C9F615 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		FC556F8725F715A2009CF91D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FC556F8625F715A2009CF91D /* libHNMediaPlayer.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FCA52C342609A03F009823E1 /* HNMediaPlayer */ = {
+			isa = PBXGroup;
+			children = (
+				FCA52C352609A03F009823E1 /* CacheSQLite3 */,
+				FCA52C3A2609A03F009823E1 /* HNMediaPlayer.h */,
+				FCA52C3B2609A03F009823E1 /* UZEngine */,
+				FCA52C422609A03F009823E1 /* HNMediaPlayer.m */,
+			);
+			path = HNMediaPlayer;
+			sourceTree = "<group>";
+		};
+		FCA52C352609A03F009823E1 /* CacheSQLite3 */ = {
+			isa = PBXGroup;
+			children = (
+				FCA52C362609A03F009823E1 /* HNVideoItem.m */,
+				FCA52C372609A03F009823E1 /* HNVideoList.h */,
+				FCA52C382609A03F009823E1 /* HNVideoItem.h */,
+				FCA52C392609A03F009823E1 /* HNVideoList.m */,
+			);
+			path = CacheSQLite3;
+			sourceTree = "<group>";
+		};
+		FCA52C3B2609A03F009823E1 /* UZEngine */ = {
+			isa = PBXGroup;
+			children = (
+				FCA52C3C2609A03F009823E1 /* UIViewControllerExtension.h */,
+				FCA52C3D2609A03F009823E1 /* UZURLTask.h */,
+				FCA52C3E2609A03F009823E1 /* UZModule.h */,
+				FCA52C3F2609A03F009823E1 /* UZAppDelegate.h */,
+				FCA52C402609A03F009823E1 /* UZAppUtils.h */,
+				FCA52C412609A03F009823E1 /* NSDictionaryUtils.h */,
+			);
+			path = UZEngine;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FC556F8525F715A2009CF91D /* HNMediaPlayer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FC556F8F25F715A2009CF91D /* Build configuration list for PBXNativeTarget "HNMediaPlayer" */;
+			buildPhases = (
+				DA4CD42DB8B0DA7EACB822A3 /* [CP] Check Pods Manifest.lock */,
+				FC556F8225F715A2009CF91D /* Sources */,
+				FC556F8325F715A2009CF91D /* Frameworks */,
+				FC556F8425F715A2009CF91D /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HNMediaPlayer;
+			productName = HNMediaPlayer;
+			productReference = FC556F8625F715A2009CF91D /* libHNMediaPlayer.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FC556F7E25F715A2009CF91D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1240;
+				TargetAttributes = {
+					FC556F8525F715A2009CF91D = {
+						CreatedOnToolsVersion = 12.4;
+					};
+				};
+			};
+			buildConfigurationList = FC556F8125F715A2009CF91D /* Build configuration list for PBXProject "HNMediaPlayer" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FC556F7D25F715A2009CF91D;
+			productRefGroup = FC556F8725F715A2009CF91D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FC556F8525F715A2009CF91D /* HNMediaPlayer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		DA4CD42DB8B0DA7EACB822A3 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-HNMediaPlayer-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FC556F8225F715A2009CF91D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */,
+				FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */,
+				FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		FC556F8D25F715A2009CF91D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_BITCODE = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		FC556F8E25F715A2009CF91D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_BITCODE = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		FC556F9025F715A2009CF91D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 222B8123BF15C1B9D8204DE2 /* Pods-HNMediaPlayer.debug.xcconfig */;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CODE_SIGN_STYLE = Automatic;
+				EXCLUDED_ARCHS = "";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FC556F9125F715A2009CF91D /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 714F7ED61AEAC6B77A2AB5EA /* Pods-HNMediaPlayer.release.xcconfig */;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CODE_SIGN_STYLE = Automatic;
+				EXCLUDED_ARCHS = "";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FC556F8125F715A2009CF91D /* Build configuration list for PBXProject "HNMediaPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC556F8D25F715A2009CF91D /* Debug */,
+				FC556F8E25F715A2009CF91D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FC556F8F25F715A2009CF91D /* Build configuration list for PBXNativeTarget "HNMediaPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC556F9025F715A2009CF91D /* Debug */,
+				FC556F9125F715A2009CF91D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FC556F7E25F715A2009CF91D /* Project object */;
+}
