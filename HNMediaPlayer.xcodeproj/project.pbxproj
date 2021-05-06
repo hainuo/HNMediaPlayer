@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		A9FFF30BB5C661C80B86BE5C /* Pods_HNMediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		FC8D37F526439D2800CE9AFA /* SJVideoPlayer.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = FC8D37F426439D2800CE9AFA /* SJVideoPlayer.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		FC8D37F726439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = FC8D37F626439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C362609A03F009823E1 /* HNVideoItem.m */; };
 		FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C392609A03F009823E1 /* HNVideoList.m */; };
 		FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C422609A03F009823E1 /* HNMediaPlayer.m */; };
@@ -18,8 +20,10 @@
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "include/$(PRODUCT_NAME)";
-			dstSubfolderSpec = 16;
+			dstSubfolderSpec = 7;
 			files = (
+				FC8D37F726439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle in CopyFiles */,
+				FC8D37F526439D2800CE9AFA /* SJVideoPlayer.bundle in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -30,6 +34,8 @@
 		714F7ED61AEAC6B77A2AB5EA /* Pods-HNMediaPlayer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-HNMediaPlayer.release.xcconfig"; path = "Target Support Files/Pods-HNMediaPlayer/Pods-HNMediaPlayer.release.xcconfig"; sourceTree = "<group>"; };
 		AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_HNMediaPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC556F8625F715A2009CF91D /* libHNMediaPlayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libHNMediaPlayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC8D37F426439D2800CE9AFA /* SJVideoPlayer.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = SJVideoPlayer.bundle; path = Pods/SJVideoPlayer/SJVideoPlayer/ResourceLoader/SJVideoPlayer.bundle; sourceTree = "<group>"; };
+		FC8D37F626439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = SJBaseVideoPlayerResources.bundle; path = Pods/SJBaseVideoPlayer/SJBaseVideoPlayer/ResourceLoader/SJBaseVideoPlayerResources.bundle; sourceTree = "<group>"; };
 		FCA52C362609A03F009823E1 /* HNVideoItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNVideoItem.m; sourceTree = "<group>"; };
 		FCA52C372609A03F009823E1 /* HNVideoList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HNVideoList.h; sourceTree = "<group>"; };
 		FCA52C382609A03F009823E1 /* HNVideoItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HNVideoItem.h; sourceTree = "<group>"; };
@@ -76,6 +82,8 @@
 		FC556F7D25F715A2009CF91D = {
 			isa = PBXGroup;
 			children = (
+				FC8D37F626439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle */,
+				FC8D37F426439D2800CE9AFA /* SJVideoPlayer.bundle */,
 				FCA52C342609A03F009823E1 /* HNMediaPlayer */,
 				FC556F8725F715A2009CF91D /* Products */,
 				21FBD21291DEDC25E00C50C2 /* Pods */,

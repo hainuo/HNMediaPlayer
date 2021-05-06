@@ -313,8 +313,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
     _player.rotationManager.disabledAutorotation = YES;
     if(isLandscape){
         NSLog(@"-90999-9-09-090-9-09-09-9-0");
-        _player.autoManageViewToFitOnScreenOrRotation = NO;
-        _player.useFitOnScreenAndDisableRotation = YES;
+        _player.automaticallyPerformRotationOrFitOnScreen = NO;
+        _player.usesFitOnScreenFirst = YES;
     }
     
     if (@available(iOS 14.0, *)) {
@@ -374,15 +374,38 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 }
 
 
-JS_METHOD_SYNC(stop:(UZModuleMethodContext *)context){
+JS_METHOD(stop:(UZModuleMethodContext *)context){
     if(!_player) {
-        return @{@"msg":@"没有找到播放器",@"code":@0};
+        [context callbackWithRet:@{@"msg":@"没有找到播放器",@"code":@0} err:nil delete:YES];
+        
     }
-    [_player stop];
-    _player = nil;
-
-    return @{@"msg":@"已停止播放！",@"code":@1};
+    NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+    [waitQueue addOperationWithBlock:^{
+        // 同步到主线程
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self->_player stop];
+        });
+    }];
+    [context callbackWithRet:@{@"msg":@"已停止播放！",@"code":@1} err:nil delete:YES];
 }
+
+JS_METHOD(clearPlayer:(UZModuleMethodContext *)context){
+    if(!_player) {
+        [context callbackWithRet:@{@"msg":@"没有找到播放器",@"code":@0} err:nil delete:YES];
+        
+    }
+    NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+    [waitQueue addOperationWithBlock:^{
+        // 同步到主线程
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self->_player stop];
+            [self->_player.view removeFromSuperview];
+            self->_player = nil;
+        });
+    }];
+    [context callbackWithRet:@{@"msg":@"已移除播放器！",@"code":@1} err:nil delete:YES];
+}
+
 
 JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
     if(!_player) {
