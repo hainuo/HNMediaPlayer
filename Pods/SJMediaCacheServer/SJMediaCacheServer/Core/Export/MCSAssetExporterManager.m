@@ -6,9 +6,10 @@
 //
 
 #import "MCSAssetExporterManager.h"
-#import "NSFileManager+MCS.h"
-#import "MCSPrefetcherManager.h"
+#import "MCSAssetCacheManager.h"
 #import "MCSAssetManager.h"
+#import "MCSPrefetcherManager.h"
+#import "NSFileManager+MCS.h"
 #import "MCSDatabase.h"
 #import "MCSURL.h"
 #import "MCSUtils.h"
@@ -27,6 +28,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
 - (void)resume;
 - (void)suspend;
 - (void)cancel;
+- (void)willBeRemoved;
 @end
 
 @interface MCSAssetExporter () {
@@ -204,6 +206,15 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( isChanged ) [NSNotificationCenter.defaultCenter postNotificationName:MCSAssetExporterStatusDidChangeNotification object:self];
 }
 
+- (void)willBeRemoved {
+    [self _lockInBlock:^{
+        if ( _task != nil ) {
+            [_task cancel];
+            _task = nil;
+        }
+    }];
+}
+
 #pragma mark - mark
 
 - (void)_syncProgress {
@@ -299,16 +310,9 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
         if ( parser != nil ) {
             // 获取所有相关的asset, 计算进度
             NSMutableArray<HLSAsset *> *allAssets = [NSMutableArray arrayWithObject:asset];
-            for ( NSInteger i = 0 ; i < parser.allItemsCount ; ++ i ) {
-                id<HLSURIItem> item = [parser itemAtIndex:i];
-                if ( [parser isVariantItem:item] ) {
-                    NSArray<id<HLSURIItem>> *renditionsItems = [parser renditionsItemsForVariantItem:item];
-                    for ( id<HLSURIItem> item in renditionsItems ) {
-                        NSURL *URL = [MCSURL.shared HLS_URLWithProxyURI:item.URI];
-                        HLSAsset *asset = [MCSAssetManager.shared assetWithURL:URL];
-                        if ( asset != nil ) [allAssets addObject:asset];
-                    }
-                }
+            NSArray<HLSAsset *> *subAssets = asset.subAssets;
+            if ( subAssets != nil ) {
+                [allAssets addObjectsFromArray:subAssets];
             }
             
             float all = 0;
@@ -332,7 +336,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( asset.TsContents.count != 0 ) {
         NSMutableArray<HLSContentTs *> *contents = [asset.TsContents mutableCopy];
         [contents sortUsingComparator:^NSComparisonResult(HLSContentTs *obj1, HLSContentTs *obj2) {
-            if ( [obj1.name isEqualToString:obj2.name] ) {
+            if ( [obj1.name isEqualToString:obj2.name] && NSEqualRanges(obj1.range, obj2.range) ) {
                 if ( obj1.length == obj2.length )
                     return NSOrderedSame;
                 return obj1.length > obj2.length ? NSOrderedAscending : NSOrderedDescending;
@@ -343,7 +347,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
         float progress = 0;
         HLSContentTs *pre = nil;
         for ( HLSContentTs *content in contents ) {
-            if ( pre == nil || ![content.name isEqualToString:pre.name] ) {
+            if ( pre == nil || !([content.name isEqualToString:pre.name] && NSEqualRanges(content.range, pre.range)) ) {
                 progress += content.length * 1.0 / content.range.length;
             }
             pre = content;
@@ -381,33 +385,10 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     self = [super init];
     if ( self ) {
         _semaphore = dispatch_semaphore_create(1);
+        _exporters = NSMutableArray.array;
 
         _sqlite3 = MCSDatabase();
-        NSArray<MCSAssetExporter *> *results = [_sqlite3 objectsForClass:MCSAssetExporter.class conditions:nil orderBy:@[
-            [SJSQLite3ColumnOrder orderWithColumn:@"id" ascending:NO]
-        ] error:NULL];
-        if ( results.count != 0 ) {
-            NSMutableArray<MCSAssetExporter *> *needsToPause = NSMutableArray.array;
-            for ( MCSAssetExporter *exporter in results ) {
-                switch ( exporter.status ) {
-                    case MCSAssetExportStatusUnknown:
-                    case MCSAssetExportStatusFinished:
-                    case MCSAssetExportStatusFailed:
-                    case MCSAssetExportStatusSuspended:
-                    case MCSAssetExportStatusCancelled:
-                        break;
-                    case MCSAssetExportStatusWaiting:
-                    case MCSAssetExportStatusExporting: {
-                        exporter.status = MCSAssetExportStatusSuspended;
-                        [needsToPause addObject:exporter];
-                    }
-                        break;
-                }
-            }
-            [_sqlite3 updateObjects:needsToPause forKeys:@[@"status"] error:NULL];
-        }
-        _exporters = results.count != 0 ? results.mutableCopy : NSMutableArray.array;
-         
+                 
         __weak typeof(self) _self = self;
         _progressDidChangeToken = [NSNotificationCenter.defaultCenter addObserverForName:MCSAssetExporterProgressDidChangeNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
             dispatch_async(dispatch_get_global_queue(0, 0), ^{
@@ -443,20 +424,32 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
 - (nullable NSArray<id<MCSAssetExporter>> *)allExporters {
     __block NSArray<id<MCSAssetExporter>> *allExporters = nil;
     [self _lockInBlock:^{
-        allExporters = _exporters.count != 0 ? _exporters.copy : nil;
+        // memory
+        NSMutableArray<NSNumber *> *exporterIdsInMemory = _exporters.count != 0 ? ([NSMutableArray arrayWithCapacity:_exporters.count]) : nil;
+        for ( MCSAssetExporter *exporter in _exporters ) {
+            [exporterIdsInMemory addObject:@(exporter.id)];
+        }
+        
+        // disk
+        NSArray<SJSQLite3Condition *> *conditions = nil;
+        if ( exporterIdsInMemory.count != 0 ) {
+            conditions = @[[SJSQLite3Condition conditionWithColumn:@"id" notIn:exporterIdsInMemory]];
+        }
+        NSArray<MCSAssetExporter *> *exportersInDisk = [_sqlite3 objectsForClass:MCSAssetExporter.class conditions:conditions orderBy:nil error:NULL];
+        if ( exportersInDisk.count != 0 ) {
+            [_exporters addObjectsFromArray:exportersInDisk];
+        }
+        
+        // results
+        if ( _exporters.count != 0 ) {
+            allExporters = _exporters.copy;
+        }
     }];
     return allExporters;
 }
 
 - (UInt64)countOfBytesAllExportedAssets {
-    __block UInt64 count = 0;
-    [self _lockInBlock:^{
-        for ( MCSAssetExporter *exporter in _exporters ) {
-            id<MCSAsset> asset = [MCSAssetManager.shared assetWithName:exporter.name type:exporter.type];
-            count += [NSFileManager.defaultManager mcs_directorySizeAtPath:asset.path];
-        }
-    }];
-    return count;
+    return MCSAssetCacheManager.shared.countOfBytesAllCaches - MCSAssetCacheManager.shared.countOfBytesRemovableCaches;
 }
 
 /// 注册观察者
@@ -516,12 +509,13 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     __block BOOL isRemoved = NO;
     [self _lockInBlock:^{
         NSString *name = [MCSURL.shared assetNameForURL:URL];
-        MCSAssetExporter *_Nullable exporter = [self _exporterInMemoryForName:name];
+        MCSAssetExporter *_Nullable exporter = [self _exporterInCachesForName:name];
         if ( exporter != nil ) {
+            [exporter willBeRemoved];
             [_exporters removeObject:exporter];
-            [URL mcs_setShouldHoldCache:NO];
             [_sqlite3 removeObjectForClass:MCSAssetExporter.class primaryKeyValue:@(exporter.id) error:NULL];
-            [MCSAssetManager.shared removeAssetForURL:URL];
+            [MCSAssetCacheManager.shared setProtected:NO forCacheWithURL:URL];
+            [MCSAssetCacheManager.shared removeCacheForURL:URL];
             isRemoved = YES;
         }
     }];
@@ -540,14 +534,35 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
 - (void)removeAllAssets {
     __block BOOL isRemoved = NO;
     [self _lockInBlock:^{
-        if ( _exporters.count != 0 ) {
-            NSArray<MCSAssetExporter *> *exporters = _exporters.copy;
+        NSMutableArray<NSNumber *> *exporterIdsInMemory = _exporters.count != 0 ? ([NSMutableArray arrayWithCapacity:_exporters.count]) : nil;
+        for ( MCSAssetExporter *exporter in _exporters ) {
+            [exporterIdsInMemory addObject:@(exporter.id)];
+        }
+        
+        NSArray<SJSQLite3Condition *> *conditions = nil;
+        if ( exporterIdsInMemory.count != 0 ) {
+            conditions = @[[SJSQLite3Condition conditionWithColumn:@"id" notIn:exporterIdsInMemory]];
+        }
+        NSArray<MCSAssetExporter *> *exportersInDisk = [_sqlite3 objectsForClass:MCSAssetExporter.class conditions:conditions orderBy:nil error:NULL];
+        NSArray<MCSAssetExporter *> *exportersInMemory = _exporters;
+        
+        NSMutableArray<MCSAssetExporter *> *allExporters = [NSMutableArray arrayWithCapacity:exportersInDisk.count + exportersInMemory.count];
+        if ( exportersInDisk.count != 0 ) {
+            [allExporters addObjectsFromArray:exportersInDisk];
+        }
+        
+        if ( exportersInMemory.count != 0 ) {
+            [allExporters addObjectsFromArray:exportersInMemory];
+        }
+        
+        if ( allExporters.count != 0 ) {
             [_exporters removeAllObjects];
             [_sqlite3 removeAllObjectsForClass:MCSAssetExporter.class error:NULL];
-            for ( MCSAssetExporter *exporter in exporters ) {
+            for ( MCSAssetExporter *exporter in allExporters ) {
+                [exporter willBeRemoved];
                 id<MCSAsset> asset = [MCSAssetManager.shared assetWithName:exporter.name type:exporter.type];
-                [MCSAssetManager.shared asset:asset setShouldHoldCache:NO];
-                [MCSAssetManager.shared removeAsset:asset];
+                [MCSAssetCacheManager.shared setProtected:NO forCacheWithAsset:asset];
+                [MCSAssetCacheManager.shared removeCacheForAsset:asset];
             }
             isRemoved = YES;
         }
@@ -569,7 +584,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( URL.absoluteString.length != 0 ) {
         [self _lockInBlock:^{
             NSString *name = [MCSURL.shared assetNameForURL:URL];
-            MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+            MCSAssetExporter *exporter = [self _exporterInCachesForName:name];
             status = exporter.status;
         }];
     }
@@ -583,7 +598,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( URL.absoluteString.length != 0 ) {
         [self _lockInBlock:^{
             NSString *name = [MCSURL.shared assetNameForURL:URL];
-            MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+            MCSAssetExporter *exporter = [self _exporterInCachesForName:name];
             progress = exporter.progress;
         }];
     }
@@ -599,7 +614,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     __block NSURL *playbackURL = nil;
     [self _lockInBlock:^{
         NSString *name = [MCSURL.shared assetNameForURL:URL];
-        MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+        MCSAssetExporter *exporter = [self _exporterInCachesForName:name];
         if ( exporter.status == MCSAssetExportStatusFinished ) {
             __kindof id<MCSAsset> a = [MCSAssetManager.shared assetWithName:exporter.name type:exporter.type];
             switch ( a.type ) {
@@ -626,7 +641,7 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( URL.absoluteString.length != 0 ) {
         [self _lockInBlock:^{
             NSString *name = [MCSURL.shared assetNameForURL:URL];
-            MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+            MCSAssetExporter *exporter = [self _exporterInCachesForName:name];
             [exporter synchronize];
         }];
     }
@@ -649,14 +664,30 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
 }
 
 - (MCSAssetExporter *)_exportAssetWithURL:(NSURL *)URL {
-    [URL mcs_setShouldHoldCache:YES];
     NSString *name = [MCSURL.shared assetNameForURL:URL];
-    MCSAssetType type = [MCSURL.shared assetTypeForURL:URL];
-    MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+    MCSAssetExporter *exporter = [self _exporterInCachesForName:name];
     if ( exporter == nil ) {
+        MCSAssetType type = [MCSURL.shared assetTypeForURL:URL];
         exporter = [MCSAssetExporter.alloc initWithURLString:URL.absoluteString name:name type:type];
+        [MCSAssetCacheManager.shared setProtected:YES forCacheWithURL:URL];
         [_sqlite3 save:exporter error:NULL];
         [_exporters addObject:exporter];
+    }
+    return exporter;
+}
+
+- (nullable MCSAssetExporter *)_exporterInCachesForName:(NSString *)name {
+    // memory
+    MCSAssetExporter *exporter = [self _exporterInMemoryForName:name];
+    if ( exporter == nil ) {
+        // disk
+        exporter = [_sqlite3 objectsForClass:MCSAssetExporter.class conditions:@[
+            [SJSQLite3Condition conditionWithColumn:@"name" value:name]
+        ] orderBy:nil error:NULL].firstObject;
+        // add into memory
+        if ( exporter != nil ) {
+            [_exporters addObject:exporter];
+        }
     }
     return exporter;
 }
@@ -674,13 +705,29 @@ static NSNotificationName const MCSAssetExporterStatusDidChangeNotification = @"
     if ( status == MCSAssetExportStatusCancelled ) {
         [self _lockInBlock:^{
             id<MCSAsset> asset = [MCSAssetManager.shared assetWithName:exporter.name type:exporter.type];
-            [MCSAssetManager.shared asset:asset setShouldHoldCache:NO];
+            [MCSAssetCacheManager.shared setProtected:NO forCacheWithAsset:asset];
             [_exporters removeObject:exporter];
             [_sqlite3 removeObjectForClass:MCSAssetExporter.class primaryKeyValue:@(exporter.id) error:NULL];
         }];
     }
     else {
-        [_sqlite3 updateObjects:@[exporter] forKeys:@[@"status"] error:NULL];
+        /// 将状态同步数据库
+        ///
+        /// 状态处于 Waiting, Exporting 时不需要同步至数据库, 仅维护 expoter 在内存中的状态即可.
+        /// 当再次启动App时, 状态将在 Suspended, Failed, Finished 之间.
+        ///
+        switch ( exporter.status ) {
+            case MCSAssetExportStatusFinished:
+            case MCSAssetExportStatusFailed:
+            case MCSAssetExportStatusSuspended:
+                [_sqlite3 updateObjects:@[exporter] forKeys:@[@"status"] error:NULL];
+                break;
+            case MCSAssetExportStatusUnknown:
+            case MCSAssetExportStatusCancelled:
+            case MCSAssetExportStatusWaiting:
+            case MCSAssetExportStatusExporting:
+                break;
+        }
     }
     dispatch_async(dispatch_get_main_queue(), ^{
         if ( exporter.statusDidChangeExecuteBlock != nil ) {

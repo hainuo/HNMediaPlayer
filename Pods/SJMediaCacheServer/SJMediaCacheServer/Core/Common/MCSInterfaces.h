@@ -49,9 +49,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@protocol MCSExportable <NSObject>
-@property (nonatomic, readonly) BOOL shouldHoldCache;
-@end
 
 @protocol MCSReadwriteReference <NSObject>
 @property (nonatomic, readonly) NSInteger readwriteCount; // kvo
@@ -62,7 +59,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark -
 
-@protocol MCSAsset <MCSReadwriteReference, MCSSaveable, MCSExportable>
+@protocol MCSAsset <MCSReadwriteReference, MCSSaveable>
 - (instancetype)initWithName:(NSString *)name;
 @property (nonatomic, readonly) NSInteger id;
 @property (nonatomic, copy, readonly) NSString *name;
@@ -85,7 +82,6 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark -
 
 @protocol MCSAssetReader <NSObject>
-- (instancetype)initWithAsset:(id<MCSAsset>)asset request:(NSURLRequest *)request networkTaskPriority:(float)networkTaskPriority readDataDecoder:(NSData *(^_Nullable)(NSURLRequest *request, NSUInteger offset, NSData *data))readDataDecoder delegate:(id<MCSAssetReaderDelegate>)delegate;
 
 - (void)prepare;
 @property (nonatomic, copy, readonly, nullable) NSData *(^readDataDecoder)(NSURLRequest *request, NSUInteger offset, NSData *data);

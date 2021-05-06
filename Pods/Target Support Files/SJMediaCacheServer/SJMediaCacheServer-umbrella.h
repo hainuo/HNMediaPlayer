@@ -29,6 +29,7 @@
 #import "MCSAssetManager.h"
 #import "MCSAssetUsageLog.h"
 #import "MCSConfiguration.h"
+#import "MCSAssetCacheManager.h"
 #import "MCSConsts.h"
 #import "MCSDatabase.h"
 #import "MCSDefines.h"

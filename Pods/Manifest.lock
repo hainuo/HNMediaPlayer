@@ -2,29 +2,29 @@ PODS:
   - CocoaAsyncSocket (7.6.5)
   - ijkplayerssl (1.1.4)
   - Masonry (1.1.0)
-  - SJBaseVideoPlayer (3.5.2):
+  - SJBaseVideoPlayer (3.6.3):
     - Masonry
-    - SJBaseVideoPlayer/AVPlayer (= 3.5.2)
-    - SJBaseVideoPlayer/Common (= 3.5.2)
+    - SJBaseVideoPlayer/AVPlayer (= 3.6.3)
+    - SJBaseVideoPlayer/Common (= 3.6.3)
     - SJUIKit/AttributesFactory (>= 0.0.0.38)
     - SJUIKit/ObserverHelper
     - SJUIKit/Queues
     - SJUIKit/SQLite3
-  - SJBaseVideoPlayer/AVPlayer (3.5.2):
+  - SJBaseVideoPlayer/AVPlayer (3.6.3):
     - Masonry
     - SJBaseVideoPlayer/Common
     - SJUIKit/AttributesFactory (>= 0.0.0.38)
     - SJUIKit/ObserverHelper
     - SJUIKit/Queues
     - SJUIKit/SQLite3
-  - SJBaseVideoPlayer/Common (3.5.2):
+  - SJBaseVideoPlayer/Common (3.6.3):
     - Masonry
     - SJBaseVideoPlayer/ResourceLoader
     - SJUIKit/AttributesFactory (>= 0.0.0.38)
     - SJUIKit/ObserverHelper
     - SJUIKit/Queues
     - SJUIKit/SQLite3
-  - SJBaseVideoPlayer/IJKPlayer (3.5.2):
+  - SJBaseVideoPlayer/IJKPlayer (3.6.3):
     - ijkplayerssl
     - Masonry
     - SJBaseVideoPlayer/Common
@@ -32,20 +32,20 @@ PODS:
     - SJUIKit/ObserverHelper
     - SJUIKit/Queues
     - SJUIKit/SQLite3
-  - SJBaseVideoPlayer/ResourceLoader (3.5.2):
+  - SJBaseVideoPlayer/ResourceLoader (3.6.3):
     - Masonry
     - SJUIKit/AttributesFactory (>= 0.0.0.38)
     - SJUIKit/ObserverHelper
     - SJUIKit/Queues
     - SJUIKit/SQLite3
-  - SJMediaCacheServer (1.6.0):
-    - SJMediaCacheServer/Core (= 1.6.0)
-    - SJMediaCacheServer/KTVCocoaHTTPServer (= 1.6.0)
+  - SJMediaCacheServer (1.6.3):
+    - SJMediaCacheServer/Core (= 1.6.3)
+    - SJMediaCacheServer/KTVCocoaHTTPServer (= 1.6.3)
     - SJUIKit/SQLite3
-  - SJMediaCacheServer/Core (1.6.0):
+  - SJMediaCacheServer/Core (1.6.3):
     - SJMediaCacheServer/KTVCocoaHTTPServer
     - SJUIKit/SQLite3
-  - SJMediaCacheServer/KTVCocoaHTTPServer (1.6.0):
+  - SJMediaCacheServer/KTVCocoaHTTPServer (1.6.3):
     - CocoaAsyncSocket
     - SJUIKit/SQLite3
   - SJUIKit/AttributesFactory (0.0.0.52):
@@ -64,21 +64,21 @@ PODS:
     - YYModel
   - SJUIKit/SQLite3/Protocol (0.0.0.52):
     - YYModel
-  - SJVideoPlayer (3.3.0):
-    - SJBaseVideoPlayer (>= 3.5.0)
-    - SJVideoPlayer/Common (= 3.3.0)
-    - SJVideoPlayer/ControlLayers (= 3.3.0)
-    - SJVideoPlayer/ResourceLoader (= 3.3.0)
-  - SJVideoPlayer/Common (3.3.0):
+  - SJVideoPlayer (3.3.2):
+    - SJBaseVideoPlayer (>= 3.6.0)
+    - SJVideoPlayer/Common (= 3.3.2)
+    - SJVideoPlayer/ControlLayers (= 3.3.2)
+    - SJVideoPlayer/ResourceLoader (= 3.3.2)
+  - SJVideoPlayer/Common (3.3.2):
     - Masonry
-    - SJBaseVideoPlayer (>= 3.5.0)
+    - SJBaseVideoPlayer (>= 3.6.0)
     - SJUIKit/AttributesFactory
     - SJVideoPlayer/ResourceLoader
-  - SJVideoPlayer/ControlLayers (3.3.0):
-    - SJBaseVideoPlayer (>= 3.5.0)
+  - SJVideoPlayer/ControlLayers (3.3.2):
+    - SJBaseVideoPlayer (>= 3.6.0)
     - SJVideoPlayer/Common
-  - SJVideoPlayer/ResourceLoader (3.3.0):
-    - SJBaseVideoPlayer (>= 3.5.0)
+  - SJVideoPlayer/ResourceLoader (3.3.2):
+    - SJBaseVideoPlayer (>= 3.6.0)
   - YYModel (1.0.4)
 
 DEPENDENCIES:
@@ -112,10 +112,10 @@ SPEC CHECKSUMS:
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   ijkplayerssl: 595307d7d3ca305450d22af27cd638c659fa988d
   Masonry: 678fab65091a9290e40e2832a55e7ab731aad201
-  SJBaseVideoPlayer: c8f2fdb374ec2c946c37b1f39eee24f0812a979b
-  SJMediaCacheServer: 41ce12c235a0baaf713daefcaf47b0556675b3dc
+  SJBaseVideoPlayer: 99957bb0d0fe1ccb8d6710bd9db9f52640c56a32
+  SJMediaCacheServer: 74656385db09cf77d76a649143d1f870e344e4e9
   SJUIKit: 8246b1001e616b0dbd090309fd58cdd609ae3fd4
-  SJVideoPlayer: f819c5074aea5192fe624784f8a7e820e45b85cf
+  SJVideoPlayer: 3a271ff92c7b9d611c537655fd1edcbae18b8587
   YYModel: 2a7fdd96aaa4b86a824e26d0c517de8928c04b30
 
 PODFILE CHECKSUM: b3fdf90c696728c3611c7a12fe8d488047d1eac4
