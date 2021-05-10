@@ -440,10 +440,10 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 }
 -(void) setTopButtons{
     //移除more按钮
-    SJEdgeControlButtonItem *moreItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
-    if(moreItem){
-        [_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_More];
-    }
+//    SJEdgeControlButtonItem *moreItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
+//    if(moreItem){
+//        [_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_More];
+//    }
     
 }
 -(void) setBottomButtons:(BOOL)loading {
