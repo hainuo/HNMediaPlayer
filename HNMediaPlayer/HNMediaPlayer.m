@@ -28,11 +28,21 @@
 #import "HNVideoItem.h"
 #import <SJUIKit/NSAttributedString+SJMake.h>
 
+static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
 @interface HNMediaPlayer ()<MCSAssetExportObserver>
 @property (nonatomic, strong) SJVideoPlayer *player;
 @property (nonatomic, strong) SJBaseVideoPlayer *sjbPlayer;
 @property (nonatomic, strong) SJSQLite3 *sqlite3;
 @property (nonatomic,strong) NSTimer *timer;
+@property (nonatomic,strong) NSString *preUrl;
+@property (nonatomic,strong) SJEdgeControlButtonItem *playItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *nextItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *liveItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *currentTimeItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *separatorItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *durationTimeItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *progressItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *fullItem;
 @end
 
 @implementation HNMediaPlayer
@@ -229,7 +239,9 @@
 JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 
 	_player = SJVideoPlayer.player;
+
 	if(_player) {
+		_player = nil;
 		return @YES;
 	}
 	return @NO;
@@ -239,7 +251,22 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(_player) {
 		[_player stop];
+    }else{
+        _player = SJVideoPlayer.player;
 	}
+    SJVideoPlayerConfigurations.shared.resources.progressThumbSize= 8.0;
+    SJVideoPlayerConfigurations.shared.resources.progressThumbColor = [UIColor colorWithRed:2 / 256.0 green:141 / 256.0 blue:140 / 256.0 alpha:1];
+    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateValue=2.0;
+    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateImage= [SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_maxRate"];
+
+    _player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
+	_player.autoplayWhenSetNewAsset=NO;
+	_player.resumePlaybackWhenAppDidEnterForeground = YES;
+	_player.defaultEdgeControlLayer.fixesBackItem = NO;
+	_player.defaultEdgeControlLayer.showsMoreItem = NO;
+	_player.rotationManager.disabledAutorotation = YES;
+	_player.defaultEdgeControlLayer.titleView.scrollEnabled = NO;
+
 	NSDictionary *param = context.param;
 	NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
 	NSString *preUrl = [param stringValueForKey:@"preUrl" defaultValue:nil];
@@ -265,11 +292,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	float y = [rect floatValueForKey:@"y" defaultValue:0];
 	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
 	float height = [rect floatValueForKey:@"height" defaultValue:300];
-
-
-	_player = SJVideoPlayer.player;
-
-
 
 	SJVideoPlayerURLAsset *asset;
 	if(referrer) {
@@ -310,28 +332,10 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 	NSLog(@"最终headers %@",headers);
 
-	_player.autoplayWhenSetNewAsset=NO;
-	_player.resumePlaybackWhenAppDidEnterForeground = YES;
-	_player.defaultEdgeControlLayer.fixesBackItem = NO;
-	_player.defaultEdgeControlLayer.showsMoreItem = YES;
-	_player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
-	_player.rotationManager.disabledAutorotation = YES;
-	_player.defaultEdgeControlLayer.titleView.scrollEnabled = NO;
+
 	if(title) {
 		asset.title = title;
 	}
-
-
-	// 为分享按钮提供一个标识tag(tag需要是唯一的, 后续在需要时, 可用于获取该item)
-//       SJEdgeControlButtonItemTag shareItemTag = 10;
-	// 创建分享按钮
-//        UIImage *shareImage = [UIImage imageNamed:@"icon_share.png"] ;
-//       SJEdgeControlButtonItem *shareItem = [SJEdgeControlButtonItem.alloc initWithImage:shareImage target:self action:@selector(shareItemWasTapped) tag:shareItemTag];
-	// 添加到 topAdapter 中
-//       [_player.defaultEdgeControlLayer.topAdapter addItem:shareItem];
-//       [_player.defaultEdgeControlLayer.topAdapter reload];
-
-
 
 	if(isLandscape) {
 		NSLog(@"-90999-9-09-090-9-09-09-9-0");
@@ -354,7 +358,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
 		};
 	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:YES];
+	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 	_player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
 
@@ -367,7 +371,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
 		};
 	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:YES];
+	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 	_player.playbackObserver.timeControlStatusDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
 	        NSLog(@"timeControlStatusChange %@",player);
@@ -380,82 +384,296 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	                @"timeWatched":@(player.durationWatched)
 		};
 	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:YES];
+	        [context callbackWithRet:ret err:nil delete:NO];
 	};
-    _player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
-        NSLog(@"assetStatusDidChange %@ assetStatus %ld SJAssetStatusReadyToPlay %ld",player,player.assetStatus,SJAssetStatusReadyToPlay);
-        if(player.assetStatus == SJAssetStatusReadyToPlay){
-            [player play];
-        }
-    };
+	_player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
+	        NSLog(@"assetStatusDidChange %@ assetStatus %ld SJAssetStatusReadyToPlay %ld",player,player.assetStatus,SJAssetStatusReadyToPlay);
+
+	        if(player.assetStatus == SJAssetStatusReadyToPlay) {
+			[player play];
+		}
+	        if(player.assetStatus == SJAssetStatusFailed) {
+			NSLog(@"当前链接加载失败，不能播放");
+			self->_sjbPlayer = nil;
+		}
+	        NSDictionary *ret = @{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"操作成功"};
+	        [context callbackWithRet:ret err:nil delete:NO];
+	};
 
 	_player.playbackObserver.playbackStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
-        
-        NSLog(@"playbackStatusDidChange %@ %ld 预加载状态 %ld %ld",player,(long)player.timeControlStatus,(long)SJPlaybackTimeControlStatusWaitingToPlay,(long)player.playbackType);
-        if(player.timeControlStatus == SJPlaybackTimeControlStatusPlaying){
-            self->_sjbPlayer = nil;
-        }
-        [context callbackWithRet:@{@"code":@1,@"msg":@"ok"} err:nil delete:YES];
+
+	        NSLog(@"playbackStatusDidChange %@ %ld 预加载状态 %ld %ld",player,(long)player.timeControlStatus,(long)SJPlaybackTimeControlStatusWaitingToPlay,(long)player.playbackType);
+	        if(player.timeControlStatus == SJPlaybackTimeControlStatusPlaying) {
+			self->_sjbPlayer = nil;
+		}
+	        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"playbackStatus"} err:nil delete:NO];
 	};
 	_player.view.backgroundColor = UIColor.greenColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
 	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
-    _player.URLAsset = asset;
 
-//	[_player play];
 
 //    UIView *testView = [[UIView alloc] initWithFrame:CGRectMake(0,100, 100, 50)];
 //    testView.backgroundColor=[UIColor grayColor];
 //    [self addSubview:testView fixedOn:fixedOn fixed:fixed];
 
+
+//    SJEdgeControlButtonItem *liveItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
+
+	_player.defaultEdgeControlLayer.bottomProgressIndicatorHeight=3.0;
+
 	if(preUrl) {
 		NSLog(@"preUrl is %@",preUrl);
-        [self showBaseVideoPlayer:[NSURL URLWithString:preUrl]];
-        
-
+		_preUrl = preUrl;
+		if(!_sjbPlayer) {
+			[self showBaseVideoPlayer:preUrl];
+		}
 	}else{
 		NSLog(@"no preUrl");
-		[context callbackWithRet:@{@"code":@1,@"msg":@"没有preurl"} err:nil delete:YES];
+	}
+	_player.URLAsset = asset;
+	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！"} err:nil delete:YES];
+    [self setBottomButtons];
+}
+-(void) setBottomButtons {
+	[self setBottomButtons:false];
+}
+-(void) setTopButtons{
+    //移除more按钮
+    SJEdgeControlButtonItem *moreItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
+    if(moreItem){
+        [_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_More];
+    }
+    
+}
+-(void) setBottomButtons:(BOOL)loading {
+
+	//设置底部按钮等
+	NSMutableArray<SJEdgeControlButtonItem *> *bottomButtonItems = [NSMutableArray arrayWithCapacity:2];
+	NSLog(@" mutable Array %@",bottomButtonItems);
+	//播放暂停按钮
+    if(!_playItem){
+        _playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
+    }
+	NSLog(@"playItem %@",_playItem);
+	_playItem.size = 20;
+	if(loading)
+		_playItem.hidden=YES;
+	else
+		_playItem.hidden = NO;
+    if(_playItem)
+	[bottomButtonItems addObject:_playItem];
+
+	//下一集按钮
+	if(!_nextItem)
+        _nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
+	NSLog(@"nextItem %@",_nextItem);
+
+	_nextItem.size=30;
+	if(loading)
+		_nextItem.hidden = YES;
+	else
+		_nextItem.hidden=NO;
+    if(_nextItem)
+	[bottomButtonItems addObject:_nextItem];
+
+
+	//直播按钮
+	if(!_liveItem)
+        _liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
+	NSLog(@"liveItem %@",_liveItem);
+	if(_liveItem) {
+		_liveItem.hidden = YES;
+		[bottomButtonItems addObject:_liveItem];
+	}
+
+	//当前进度时间
+	if(!_currentTimeItem)
+        _currentTimeItem= [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_CurrentTime];
+	if(loading)
+		_currentTimeItem.hidden = YES;
+	else
+		_currentTimeItem.hidden=NO;
+    NSLog(@"currentTimeItem %@",_currentTimeItem);
+    if(_currentTimeItem)
+	[bottomButtonItems addObject:_currentTimeItem];
+
+	//时间间隔
+	if(!_separatorItem)
+        _separatorItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Separator];
+	if(loading)
+		_currentTimeItem.hidden=YES;
+	else
+		_currentTimeItem.hidden = NO;
+    NSLog(@"_separatorItem %@",_separatorItem);
+    if(_separatorItem)
+	[bottomButtonItems addObject:_separatorItem];
+
+
+
+	//总时间
+	if(!_durationTimeItem)
+        _durationTimeItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_DurationTime];
+	if(loading)
+		_durationTimeItem.hidden=YES;
+	else
+		_durationTimeItem.hidden = NO;
+    NSLog(@"_durationTimeItem %@",_durationTimeItem);
+    if(_durationTimeItem)
+	[bottomButtonItems addObject:_durationTimeItem];
+
+
+
+	//播放进度条
+	if(!_progressItem)
+        _progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
+	if(loading)
+		_progressItem.hidden=YES;
+	else
+		_progressItem.hidden = NO;
+    NSLog(@"_progressItem %@",_progressItem);
+    if(_progressItem)
+	[bottomButtonItems addObject:_progressItem];
+
+	//调整播放速度
+
+
+	//播放进度条
+	if(!_fullItem)
+        _fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
+	if(loading)
+		_fullItem.hidden=YES;
+	else
+		_fullItem.hidden = NO;
+    
+    NSLog(@"_fullItem %@",_fullItem);
+    if(_fullItem)
+	[bottomButtonItems addObject:_fullItem];
+
+
+
+	NSLog(@"bottomButtonItems %@",bottomButtonItems);
+	if([bottomButtonItems count]>0) {
+		[_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
+		[_player.defaultEdgeControlLayer.bottomAdapter addItemsFromArray:bottomButtonItems];
+		[_player.defaultEdgeControlLayer.bottomAdapter reload];
 	}
 }
+- (void)reloadItemWasTappedForControlLayer:(id<SJControlLayer>)controlLayer {
+	[self sendCustomEvent:@"" extra:_player.assetURL.absoluteURL];
+	[_player refresh];
+	[_player.switcher switchControlLayerForIdentifier:SJControlLayer_Edge];
 
-- (void) showBaseVideoPlayer:(NSURL *)preUrl{
-    _sjbPlayer = SJBaseVideoPlayer.player;
-    _sjbPlayer.playbackObserver.playbackDidFinishExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull sjbPlayer) {
-        if(sjbPlayer.isPlaybackFinished){
-            [sjbPlayer play];
-//            if(self && self->_player){
-//                [self->_player play];
-//            }
-           
-        }
-        
-    };
-    _sjbPlayer.view.backgroundColor= [UIColor blueColor];
-    _sjbPlayer.view.frame = _player.view.bounds;
-//        _sjbPlayer.autoplayWhenSetNewAsset=YES;
-//        [self addSubview:_sjbPlayer.view fixedOn:fixedOn fixed:fixed];
-    [_player.view addSubview:_sjbPlayer.view];
-    SJVideoPlayerURLAsset *asset = [[SJVideoPlayerURLAsset alloc] initWithURL:preUrl];
-    _sjbPlayer.URLAsset = asset;
-    [_sjbPlayer play];
+}
+- (void) nextPlayClick {
+	if(_preUrl) {
+		[_player pauseForUser];
+	}
+
+	[self sendCustomEvent:@"nextPlay" extra:@{@"code":@1,@"msg":@"播放下一集"}];
+//	if(_player.isFullScreen) {
+//		_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
+//		        NSLog(@"界面切换了 全屏");
+//		        if(!mgr.isFullscreen) {
+//				[self showBaseVideoPlayer:self->_preUrl];
+//			}
+//		};
+//		if ( _player.onlyUsedFitOnScreen ) {
+//			[_player setFitOnScreen:!_player.isFitOnScreen];
+//			return;
+//		}
+//
+//		if ( _player.usesFitOnScreenFirst && !_player.isFitOnScreen ) {
+//			[_player setFitOnScreen:YES];
+//			return;
+//		}
+//
+//		[_player rotate];
+//        UIView *testView = [[UIView alloc] initWithFrame:CGRectMake(0,100, 100, 50)];
+//        testView.backgroundColor=[UIColor yellowColor];
+//        [_player.view addSubview:testView];
+//	}else{
+	NSLog(@"viviviviviiv");
+	[self showBaseVideoPlayer:_preUrl];
+
+//	}
+
+}
+- (void) showBaseVideoPlayer:(NSString *)preUrl {
+	SJVideoPlayerURLAsset *asset = [[SJVideoPlayerURLAsset alloc] initWithURL:[NSURL URLWithString:preUrl]];
+
+	if(_player.isFullScreen) {
+		_player.URLAsset = asset;
+		
+        [_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
+		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
+		        if(player.isPlaybackFinished) {
+				[player play];
+			}
+		};
+
+        //播放进度条
+        SJEdgeControlButtonItem *progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
+        progressItem.hidden=YES;
+
+	}else{
+		_sjbPlayer = SJBaseVideoPlayer.player;
+		_sjbPlayer.rotationManager.autorotationSupportedOrientations=NO;
+		_sjbPlayer.playbackObserver.playbackDidFinishExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull sjbPlayer) {
+		        if(sjbPlayer.isPlaybackFinished) {
+				[sjbPlayer play];
+				//            if(self && self->_player){
+				//                [self->_player play];
+				//            }
+
+			}
+
+		};
+		_sjbPlayer.view.backgroundColor= [UIColor blueColor];
+		[_player.view addSubview:_sjbPlayer.view];
+		//    _sjbPlayer.view.frame = _player.view.bounds;
+		[_sjbPlayer.view mas_makeConstraints:^(MASConstraintMaker *make) {
+		         make.edges.equalTo(_player.view);
+		 }];
+		_sjbPlayer.URLAsset = asset;
+		[_sjbPlayer play];
+	}
+
 }
 
 JS_METHOD(stop:(UZModuleMethodContext *)context){
 	if(!_player) {
 		[context callbackWithRet:@{@"msg":@"没有找到播放器",@"code":@0} err:nil delete:YES];
+	}else{
+		NSDictionary *param = context.param;
+		NSString *preUrl = [param stringValueForKey:@"preUrl" defaultValue:nil];
 
+		BOOL showLoading = [param boolValueForKey:@"showLoading" defaultValue:NO];
+		if(preUrl) {
+			_preUrl = preUrl;
+		}
+
+		NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+		[waitQueue addOperationWithBlock:^{
+		         // 同步到主线程
+		         dispatch_async(dispatch_get_main_queue(), ^{
+						[self->_player stop];
+						if(showLoading && self->_preUrl) {
+							[self showBaseVideoPlayer:self->_preUrl];
+						}else{
+							[self->_player.view removeFromSuperview];
+							if(self->_sjbPlayer) {
+								self->_sjbPlayer = nil;
+							}
+							self->_player = nil;
+						}
+
+
+					});
+		 }];
+		[context callbackWithRet:@{@"msg":@"已停止",@"code":@1} err:nil delete:YES];
 	}
-	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
-	[waitQueue addOperationWithBlock:^{
-	         // 同步到主线程
-	         dispatch_async(dispatch_get_main_queue(), ^{
-					[self->_player stop];
-                 [self->_player.view removeFromSuperview];
-                 self->_player = nil;
-				});
-	 }];
-	[context callbackWithRet:@{@"msg":@"已停止并移除播放！",@"code":@1} err:nil delete:YES];
+
 }
 
 JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
