@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		A9FFF30BB5C661C80B86BE5C /* Pods_HNMediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		FC6AE5192649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FC6AE5182649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.m */; };
+		FC6AE51C2649437A00EF50C3 /* HNRateListItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FC6AE51B2649437A00EF50C3 /* HNRateListItem.m */; };
 		FC8D37F526439D2800CE9AFA /* SJVideoPlayer.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = FC8D37F426439D2800CE9AFA /* SJVideoPlayer.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FC8D37F726439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = FC8D37F626439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C362609A03F009823E1 /* HNVideoItem.m */; };
@@ -34,6 +36,10 @@
 		714F7ED61AEAC6B77A2AB5EA /* Pods-HNMediaPlayer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-HNMediaPlayer.release.xcconfig"; path = "Target Support Files/Pods-HNMediaPlayer/Pods-HNMediaPlayer.release.xcconfig"; sourceTree = "<group>"; };
 		AC1886FE8A35B3F8198E52A7 /* Pods_HNMediaPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_HNMediaPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC556F8625F715A2009CF91D /* libHNMediaPlayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libHNMediaPlayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC6AE5172649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SJSwitchVideoPlayRateControlLayer.h; sourceTree = "<group>"; };
+		FC6AE5182649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SJSwitchVideoPlayRateControlLayer.m; sourceTree = "<group>"; };
+		FC6AE51A2649437A00EF50C3 /* HNRateListItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HNRateListItem.h; sourceTree = "<group>"; };
+		FC6AE51B2649437A00EF50C3 /* HNRateListItem.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HNRateListItem.m; sourceTree = "<group>"; };
 		FC8D37F426439D2800CE9AFA /* SJVideoPlayer.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = SJVideoPlayer.bundle; path = Pods/SJVideoPlayer/SJVideoPlayer/ResourceLoader/SJVideoPlayer.bundle; sourceTree = "<group>"; };
 		FC8D37F626439D7400CE9AFA /* SJBaseVideoPlayerResources.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = SJBaseVideoPlayerResources.bundle; path = Pods/SJBaseVideoPlayer/SJBaseVideoPlayer/ResourceLoader/SJBaseVideoPlayerResources.bundle; sourceTree = "<group>"; };
 		FCA52C362609A03F009823E1 /* HNVideoItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNVideoItem.m; sourceTree = "<group>"; };
@@ -106,6 +112,10 @@
 				FCA52C3A2609A03F009823E1 /* HNMediaPlayer.h */,
 				FCA52C3B2609A03F009823E1 /* UZEngine */,
 				FCA52C422609A03F009823E1 /* HNMediaPlayer.m */,
+				FC6AE5172649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.h */,
+				FC6AE5182649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.m */,
+				FC6AE51A2649437A00EF50C3 /* HNRateListItem.h */,
+				FC6AE51B2649437A00EF50C3 /* HNRateListItem.m */,
 			);
 			path = HNMediaPlayer;
 			sourceTree = "<group>";
@@ -216,6 +226,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FC6AE51C2649437A00EF50C3 /* HNRateListItem.m in Sources */,
+				FC6AE5192649418700EF50C3 /* SJSwitchVideoPlayRateControlLayer.m in Sources */,
 				FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */,
 				FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */,
 				FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */,
