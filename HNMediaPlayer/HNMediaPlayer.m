@@ -27,9 +27,13 @@
 #import "HNVideoList.h"
 #import "HNVideoItem.h"
 #import <SJUIKit/NSAttributedString+SJMake.h>
+#import "SJSwitchPlayRateControlLayerViewController.h"
 
 static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
-@interface HNMediaPlayer ()<MCSAssetExportObserver>
+static SJEdgeControlButtonItemTag const SJRateItemTag = 101;
+static SJControlLayerIdentifier SJSwitchPlayRateIdentifier = 101;
+
+@interface HNMediaPlayer ()<MCSAssetExportObserver,SJSwitchPlayRateControlLayerViewControllerDelegate>
 @property (nonatomic, strong) SJVideoPlayer *player;
 @property (nonatomic, strong) SJBaseVideoPlayer *sjbPlayer;
 @property (nonatomic, strong) SJSQLite3 *sqlite3;
@@ -42,7 +46,10 @@ static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
 @property (nonatomic,strong) SJEdgeControlButtonItem *separatorItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *durationTimeItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *progressItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *rateItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *fullItem;
+@property (nonatomic) float rate;
+@property (nonatomic) float isLandscap;
 @end
 
 @implementation HNMediaPlayer
@@ -249,24 +256,8 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 
 
 JS_METHOD(play:(UZModuleMethodContext *)context) {
-	if(_player) {
-		[_player stop];
-    }else{
-        _player = SJVideoPlayer.player;
-	}
-    SJVideoPlayerConfigurations.shared.resources.progressThumbSize= 8.0;
-    SJVideoPlayerConfigurations.shared.resources.progressThumbColor = [UIColor colorWithRed:2 / 256.0 green:141 / 256.0 blue:140 / 256.0 alpha:1];
-    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateValue=2.0;
-    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateImage= [SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_maxRate"];
-
-    _player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
-	_player.autoplayWhenSetNewAsset=NO;
-	_player.resumePlaybackWhenAppDidEnterForeground = YES;
-	_player.defaultEdgeControlLayer.fixesBackItem = NO;
-	_player.defaultEdgeControlLayer.showsMoreItem = NO;
-	_player.rotationManager.disabledAutorotation = YES;
-	_player.defaultEdgeControlLayer.titleView.scrollEnabled = NO;
-
+	
+    
 	NSDictionary *param = context.param;
 	NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
 	NSString *preUrl = [param stringValueForKey:@"preUrl" defaultValue:nil];
@@ -277,7 +268,54 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	NSString *referrer = [param stringValueForKey:@"referrer" defaultValue:nil];
 	NSString *userAgent = [param stringValueForKey:@"userAgent" defaultValue:nil];
 	BOOL isLandscape = [param boolValueForKey:@"isLandscape" defaultValue:NO];
+	float rate = [param floatValueForKey:@"rate" defaultValue:1.0];
+	float duration = [param floatValueForKey:@"rate" defaultValue:0.0];
 	NSLog(@"rect %@",rect);
+	if((int)(rate*100) <= 25 && (int)(rate*100) > 200) {
+		[context callbackWithRet:@{@"code":@0,@"msg":@"播放速率又问题"} err:nil delete:YES];
+		return;
+	}
+	_rate = rate;
+    _isLandscap = isLandscape;
+    if(_player) {
+        [_player stop];
+    }else{
+        _player = SJVideoPlayer.player;
+    }
+    [self _addCustomControlLayerToSwitcher];
+    
+    SJVideoPlayerConfigurations.shared.resources.progressThumbSize= 8.0;
+    SJVideoPlayerConfigurations.shared.resources.progressThumbColor = [UIColor colorWithRed:2 / 256.0 green:141 / 256.0 blue:140 / 256.0 alpha:1];
+    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateValue=2.0;
+    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateImage= [SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_maxRate"];
+
+    _player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
+    _player.autoplayWhenSetNewAsset=NO;
+    
+    _player.resumePlaybackWhenAppDidEnterForeground = YES;
+    _player.pauseWhenAppDidEnterBackground = YES;
+    
+    _player.defaultEdgeControlLayer.fixesBackItem = NO;
+    _player.defaultEdgeControlLayer.showsMoreItem = NO;
+    _player.rotationManager.disabledAutorotation = YES;
+    _player.defaultEdgeControlLayer.titleView.scrollEnabled = YES;
+    _player.defaultEdgeControlLayer.titleView.hidden = NO;
+    
+    
+    if(isLandscape) {
+        NSLog(@"-90999-9-09-090-9-09-09-9-0");
+        //是否
+        _player.onlyUsedFitOnScreen = YES;
+        _player.automaticallyPerformRotationOrFitOnScreen = NO;
+        //处于小屏时, 当点击全屏按钮后, 是否先竖屏撑满全屏.
+        _player.usesFitOnScreenFirst = YES;
+    }else{
+        /// 是否自动选择`Rotation(旋转)`或`FitOnScreen(充满全屏)`
+        _player.onlyUsedFitOnScreen = NO;
+        _player.automaticallyPerformRotationOrFitOnScreen = YES;
+        _player.usesFitOnScreenFirst = NO;
+    }
+    
 
 	NSLog(@"初始headers %@",headers);
 	//不再对url进行任何处理 所有传入的url必须是正常的url也就是 经过urlencode转移过 query参数的url
@@ -337,11 +375,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		asset.title = title;
 	}
 
-	if(isLandscape) {
-		NSLog(@"-90999-9-09-090-9-09-09-9-0");
-		_player.automaticallyPerformRotationOrFitOnScreen = NO;
-		_player.usesFitOnScreenFirst = YES;
-	}
+
 
 	if (@available(iOS 14.0, *)) {
 		_player.defaultEdgeControlLayer.automaticallyShowsPictureInPictureItem = NO;
@@ -408,7 +442,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		}
 	        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"playbackStatus"} err:nil delete:NO];
 	};
-	_player.view.backgroundColor = UIColor.greenColor;
+	_player.view.backgroundColor = UIColor.blackColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
 	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
 
@@ -433,18 +467,18 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 	_player.URLAsset = asset;
 	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！"} err:nil delete:YES];
-    [self setBottomButtons];
+	[self setBottomButtons];
 }
 -(void) setBottomButtons {
 	[self setBottomButtons:false];
 }
--(void) setTopButtons{
-    //移除more按钮
+-(void) setTopButtons {
+	//移除more按钮
 //    SJEdgeControlButtonItem *moreItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
 //    if(moreItem){
 //        [_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_More];
 //    }
-    
+
 }
 -(void) setBottomButtons:(BOOL)loading {
 
@@ -452,21 +486,21 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	NSMutableArray<SJEdgeControlButtonItem *> *bottomButtonItems = [NSMutableArray arrayWithCapacity:2];
 	NSLog(@" mutable Array %@",bottomButtonItems);
 	//播放暂停按钮
-    if(!_playItem){
-        _playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
-    }
+	if(!_playItem) {
+		_playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
+	}
 	NSLog(@"playItem %@",_playItem);
 	_playItem.size = 20;
 	if(loading)
 		_playItem.hidden=YES;
 	else
 		_playItem.hidden = NO;
-    if(_playItem)
-	[bottomButtonItems addObject:_playItem];
+	if(_playItem)
+		[bottomButtonItems addObject:_playItem];
 
 	//下一集按钮
 	if(!_nextItem)
-        _nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
+		_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
 	NSLog(@"nextItem %@",_nextItem);
 
 	_nextItem.size=30;
@@ -474,13 +508,13 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_nextItem.hidden = YES;
 	else
 		_nextItem.hidden=NO;
-    if(_nextItem)
-	[bottomButtonItems addObject:_nextItem];
+	if(_nextItem)
+		[bottomButtonItems addObject:_nextItem];
 
 
 	//直播按钮
 	if(!_liveItem)
-        _liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
+		_liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
 	NSLog(@"liveItem %@",_liveItem);
 	if(_liveItem) {
 		_liveItem.hidden = YES;
@@ -489,66 +523,90 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	//当前进度时间
 	if(!_currentTimeItem)
-        _currentTimeItem= [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_CurrentTime];
+		_currentTimeItem= [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_CurrentTime];
 	if(loading)
 		_currentTimeItem.hidden = YES;
 	else
 		_currentTimeItem.hidden=NO;
-    NSLog(@"currentTimeItem %@",_currentTimeItem);
-    if(_currentTimeItem)
-	[bottomButtonItems addObject:_currentTimeItem];
+	NSLog(@"currentTimeItem %@",_currentTimeItem);
+	if(_currentTimeItem)
+		[bottomButtonItems addObject:_currentTimeItem];
 
 	//时间间隔
 	if(!_separatorItem)
-        _separatorItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Separator];
+		_separatorItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Separator];
 	if(loading)
 		_currentTimeItem.hidden=YES;
 	else
 		_currentTimeItem.hidden = NO;
-    NSLog(@"_separatorItem %@",_separatorItem);
-    if(_separatorItem)
-	[bottomButtonItems addObject:_separatorItem];
+	NSLog(@"_separatorItem %@",_separatorItem);
+	if(_separatorItem)
+		[bottomButtonItems addObject:_separatorItem];
 
 
 
 	//总时间
 	if(!_durationTimeItem)
-        _durationTimeItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_DurationTime];
+		_durationTimeItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_DurationTime];
 	if(loading)
 		_durationTimeItem.hidden=YES;
 	else
 		_durationTimeItem.hidden = NO;
-    NSLog(@"_durationTimeItem %@",_durationTimeItem);
-    if(_durationTimeItem)
-	[bottomButtonItems addObject:_durationTimeItem];
+	NSLog(@"_durationTimeItem %@",_durationTimeItem);
+	if(_durationTimeItem)
+		[bottomButtonItems addObject:_durationTimeItem];
 
 
 
 	//播放进度条
 	if(!_progressItem)
-        _progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
+		_progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
 	if(loading)
 		_progressItem.hidden=YES;
 	else
 		_progressItem.hidden = NO;
-    NSLog(@"_progressItem %@",_progressItem);
-    if(_progressItem)
-	[bottomButtonItems addObject:_progressItem];
+	NSLog(@"_progressItem %@",_progressItem);
+	if(_progressItem)
+		[bottomButtonItems addObject:_progressItem];
 
-	//调整播放速度
+	//倍速按钮
+	if(!_rateItem) {
+//        NSString *imgName = [NSString stringWithFormat:@"sj_video_player_rate_%.02f",  _rate];
+//        NSLog(@"当前的倍速图片是 %@",imgName);
+//        _rateItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:imgName] target:self action:@selector(showRateItem) tag:SJRateItemTag];
+		_rateItem = [[SJEdgeControlButtonItem alloc] initWithTitle:[NSAttributedString sj_UIKitText:^(id<SJUIKitTextMakerProtocol>  _Nonnull make) {
+		                                                                    make.append([NSString stringWithFormat:@"X%.02f",  self->_rate]);
+		                                                                    make.font([UIFont systemFontOfSize:11]);
+		                                                                    make.textColor([UIColor whiteColor]);
+		                                                                    make.alignment(NSTextAlignmentCenter);
+									    }] target:self action:@selector(_rateItemWasTapped) tag:SJRateItemTag];
+	}
+	NSLog(@"_rateItem %@",_rateItem);
+
+	_rateItem.size=30;
+	if(loading)
+		_rateItem.hidden = YES;
+	else
+		_rateItem.hidden=NO;
+	if(_rateItem)
+		[bottomButtonItems addObject:_rateItem];
 
 
 	//播放进度条
-	if(!_fullItem)
-        _fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
+    if(!_fullItem){
+		_fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
+    }
 	if(loading)
 		_fullItem.hidden=YES;
 	else
 		_fullItem.hidden = NO;
     
-    NSLog(@"_fullItem %@",_fullItem);
-    if(_fullItem)
-	[bottomButtonItems addObject:_fullItem];
+    _fullItem.size = 49;
+//    [_fullItem addAction:[SJEdgeControlButtonItemAction actionWithTarget:self action:@selector(_fullItemWasTapped)]];
+    
+	NSLog(@"_fullItem %@",_fullItem);
+	if(_fullItem)
+		[bottomButtonItems addObject:_fullItem];
 
 
 
@@ -560,11 +618,12 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 }
 - (void)reloadItemWasTappedForControlLayer:(id<SJControlLayer>)controlLayer {
-	[self sendCustomEvent:@"" extra:_player.assetURL.absoluteURL];
+	[self sendCustomEvent:@"refreshUrl" extra:_player.assetURL.absoluteURL];
 	[_player refresh];
 	[_player.switcher switchControlLayerForIdentifier:SJControlLayer_Edge];
 
 }
+
 - (void) nextPlayClick {
 	if(_preUrl) {
 		[_player pauseForUser];
@@ -604,17 +663,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	if(_player.isFullScreen) {
 		_player.URLAsset = asset;
-		
-        [_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
+
+		[_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
 		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 		        if(player.isPlaybackFinished) {
 				[player play];
 			}
 		};
 
-        //播放进度条
-        SJEdgeControlButtonItem *progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
-        progressItem.hidden=YES;
+		//播放进度条
+		SJEdgeControlButtonItem *progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
+		progressItem.hidden=YES;
 
 	}else{
 		_sjbPlayer = SJBaseVideoPlayer.player;
@@ -629,7 +688,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			}
 
 		};
-		_sjbPlayer.view.backgroundColor= [UIColor blueColor];
+		_sjbPlayer.view.backgroundColor= [UIColor blackColor];
 		[_player.view addSubview:_sjbPlayer.view];
 		//    _sjbPlayer.view.frame = _player.view.bounds;
 		[_sjbPlayer.view mas_makeConstraints:^(MASConstraintMaker *make) {
@@ -925,7 +984,7 @@ JS_METHOD(playDownloadUrl:(UZModuleMethodContext *)context){
 //        SJOrientationMaskLandscapeRight = 1 << SJOrientation_LandscapeRight,
 //        SJOrientationMaskAll = SJOrientationMaskPortrait | SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight,
 //    } SJOrientationMask;
-	_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
+//	_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
 
 	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
 
@@ -1114,4 +1173,40 @@ JS_METHOD_SYNC(getVideoItemList:(UZModuleMethodContext *)context){
 
 	return _sqlite3;
 }
+#pragma mark PlayRate action
+
+-(void)_rateItemWasTapped {
+    NSLog(@"_rateItemWasTapped  %@",_player.isFullScreen?@"FullScreen":@"smallScreen");
+    
+	if ( _player.isFullScreen == NO ) {
+		[_player rotate:SJOrientation_LandscapeLeft animated:YES completion:^(SJVideoPlayer * _Nonnull player) {
+		         [player.switcher switchControlLayerForIdentifier:SJSwitchPlayRateIdentifier];
+		 }];
+	}
+	else {
+		[self.player.switcher switchControlLayerForIdentifier:SJSwitchPlayRateIdentifier];
+	}
+}
+///
+/// 添加控制层到切换器中
+///     只需添加一次, 之后直接切换即可.
+///
+- (void)_addCustomControlLayerToSwitcher {
+	__weak typeof(self) _self = self;
+	[_player.switcher addControlLayerForIdentifier:SJSwitchPlayRateIdentifier lazyLoading:^id<SJControlLayer> _Nonnull (SJControlLayerIdentifier identifier) {
+	         __strong typeof(_self) self = _self;
+	         if ( !self ) return nil;
+	         SJSwitchPlayRateControlLayerViewController *vc = SJSwitchPlayRateControlLayerViewController.new;
+	         vc.delegate = self;
+	         return vc;
+	 }];
+}
+
+#pragma mark playRate delegate
+
+
+- (void)tappedBlankAreaOnTheControlLayer:(nonnull id<SJControlLayer>)controlLayer {
+    [self.player.switcher switchControlLayerForIdentifier:SJControlLayer_Edge];
+}
+
 @end

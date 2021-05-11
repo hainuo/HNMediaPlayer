@@ -13,6 +13,8 @@
 		FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C362609A03F009823E1 /* HNVideoItem.m */; };
 		FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C392609A03F009823E1 /* HNVideoList.m */; };
 		FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA52C422609A03F009823E1 /* HNMediaPlayer.m */; };
+		FCF0BE3F264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FCF0BE3E264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.m */; };
+		FCF0BE43264A8D5900C2D440 /* HNPlayRateListItem.m in Sources */ = {isa = PBXBuildFile; fileRef = FCF0BE42264A8D5900C2D440 /* HNPlayRateListItem.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,6 +50,10 @@
 		FCA52C402609A03F009823E1 /* UZAppUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UZAppUtils.h; sourceTree = "<group>"; };
 		FCA52C412609A03F009823E1 /* NSDictionaryUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSDictionaryUtils.h; sourceTree = "<group>"; };
 		FCA52C422609A03F009823E1 /* HNMediaPlayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HNMediaPlayer.m; sourceTree = "<group>"; };
+		FCF0BE3D264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SJSwitchPlayRateControlLayerViewController.h; sourceTree = "<group>"; };
+		FCF0BE3E264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SJSwitchPlayRateControlLayerViewController.m; sourceTree = "<group>"; };
+		FCF0BE41264A8D5900C2D440 /* HNPlayRateListItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HNPlayRateListItem.h; sourceTree = "<group>"; };
+		FCF0BE42264A8D5900C2D440 /* HNPlayRateListItem.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HNPlayRateListItem.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,10 +108,13 @@
 		FCA52C342609A03F009823E1 /* HNMediaPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				FCF0BE40264A8D2B00C2D440 /* Model */,
 				FCA52C352609A03F009823E1 /* CacheSQLite3 */,
 				FCA52C3A2609A03F009823E1 /* HNMediaPlayer.h */,
 				FCA52C3B2609A03F009823E1 /* UZEngine */,
 				FCA52C422609A03F009823E1 /* HNMediaPlayer.m */,
+				FCF0BE3D264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.h */,
+				FCF0BE3E264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.m */,
 			);
 			path = HNMediaPlayer;
 			sourceTree = "<group>";
@@ -132,6 +141,15 @@
 				FCA52C412609A03F009823E1 /* NSDictionaryUtils.h */,
 			);
 			path = UZEngine;
+			sourceTree = "<group>";
+		};
+		FCF0BE40264A8D2B00C2D440 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				FCF0BE41264A8D5900C2D440 /* HNPlayRateListItem.h */,
+				FCF0BE42264A8D5900C2D440 /* HNPlayRateListItem.m */,
+			);
+			path = Model;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -217,6 +235,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				FCA52C452609A03F009823E1 /* HNMediaPlayer.m in Sources */,
+				FCF0BE43264A8D5900C2D440 /* HNPlayRateListItem.m in Sources */,
+				FCF0BE3F264A0D9D00C2D440 /* SJSwitchPlayRateControlLayerViewController.m in Sources */,
 				FCA52C432609A03F009823E1 /* HNVideoItem.m in Sources */,
 				FCA52C442609A03F009823E1 /* HNVideoList.m in Sources */,
 			);
