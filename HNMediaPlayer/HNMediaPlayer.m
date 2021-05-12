@@ -264,7 +264,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	_player.autoplayWhenSetNewAsset=NO;
 	_player.resumePlaybackWhenAppDidEnterForeground = YES;
 	_player.defaultEdgeControlLayer.fixesBackItem = NO;
-	_player.defaultEdgeControlLayer.showsMoreItem = NO;
+	_player.defaultEdgeControlLayer.showsMoreItem = YES;
 	_player.rotationManager.disabledAutorotation = NO;
 	_player.defaultEdgeControlLayer.titleView.scrollEnabled = NO;
 	//根据手机自动旋转
