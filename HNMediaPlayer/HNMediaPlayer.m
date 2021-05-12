@@ -35,6 +35,7 @@ static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
 @property (nonatomic, strong) SJSQLite3 *sqlite3;
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSString *preUrl;
+@property (nonatomic) BOOL isLandscape;
 @property (nonatomic,strong) SJEdgeControlButtonItem *playItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *nextItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *liveItem;
@@ -251,21 +252,30 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(_player) {
 		[_player stop];
-    }else{
-        _player = SJVideoPlayer.player;
+	}else{
+		_player = SJVideoPlayer.player;
 	}
-    SJVideoPlayerConfigurations.shared.resources.progressThumbSize= 8.0;
-    SJVideoPlayerConfigurations.shared.resources.progressThumbColor = [UIColor colorWithRed:2 / 256.0 green:141 / 256.0 blue:140 / 256.0 alpha:1];
-    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateValue=2.0;
-    SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateImage= [SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_maxRate"];
+	SJVideoPlayerConfigurations.shared.resources.progressThumbSize= 12.0;
+	SJVideoPlayerConfigurations.shared.resources.progressThumbColor = [UIColor colorWithRed:2 / 256.0 green:141 / 256.0 blue:140 / 256.0 alpha:1];
+	SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateValue=3.0;
+	SJVideoPlayerConfigurations.shared.resources.moreSliderMaxRateImage= [SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_maxRate"];
 
-    _player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
+	_player.defaultEdgeControlLayer.loadingView.showsNetworkSpeed=YES;
 	_player.autoplayWhenSetNewAsset=NO;
 	_player.resumePlaybackWhenAppDidEnterForeground = YES;
 	_player.defaultEdgeControlLayer.fixesBackItem = NO;
 	_player.defaultEdgeControlLayer.showsMoreItem = NO;
-	_player.rotationManager.disabledAutorotation = YES;
+	_player.rotationManager.disabledAutorotation = NO;
 	_player.defaultEdgeControlLayer.titleView.scrollEnabled = NO;
+	//根据手机自动旋转
+//    typedef enum : NSUInteger {
+//        SJOrientationMaskPortrait = 1 << SJOrientation_Portrait,
+//        SJOrientationMaskLandscapeLeft = 1 << SJOrientation_LandscapeLeft,
+//        SJOrientationMaskLandscapeRight = 1 << SJOrientation_LandscapeRight,
+//        SJOrientationMaskAll = SJOrientationMaskPortrait | SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight,
+//    } SJOrientationMask;
+
+	_player.rotationManager.autorotationSupportedOrientations = NO;
 
 	NSDictionary *param = context.param;
 	NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
@@ -279,6 +289,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	BOOL isLandscape = [param boolValueForKey:@"isLandscape" defaultValue:NO];
 	NSLog(@"rect %@",rect);
 
+	_isLandscape = isLandscape;
 	NSLog(@"初始headers %@",headers);
 	//不再对url进行任何处理 所有传入的url必须是正常的url也就是 经过urlencode转移过 query参数的url
 //    url = [url stringByRemovingPercentEncoding];
@@ -336,11 +347,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(title) {
 		asset.title = title;
 	}
+	_player.automaticallyPerformRotationOrFitOnScreen = NO;
+	_player.usesFitOnScreenFirst = NO;
 
+	_player.allowsRotationInFitOnScreen = NO;
 	if(isLandscape) {
 		NSLog(@"-90999-9-09-090-9-09-09-9-0");
 		_player.automaticallyPerformRotationOrFitOnScreen = NO;
 		_player.usesFitOnScreenFirst = YES;
+        _player.onlyUsedFitOnScreen = YES;
+		_player.allowsRotationInFitOnScreen = YES;
+        _player.rotationManager.autorotationSupportedOrientations = NO;
 	}
 
 	if (@available(iOS 14.0, *)) {
@@ -348,6 +365,20 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	} else {
 		// Fallback on earlier versions
 	}
+	__weak typeof(self) _self = self;
+	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
+	        __strong typeof(_self) self = _self;
+	        NSLog(@"已经全平了");
+	        if(self.player.isFullScreen) {
+			[self setBottomButtons:false];
+                self->_player.automaticallyPerformRotationOrFitOnScreen = YES;
+                self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
+            }else{
+                self->_player.automaticallyPerformRotationOrFitOnScreen = NO;
+                self->_player.rotationManager.autorotationSupportedOrientations = NO;
+            }
+        
+	};
 	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
 	        NSDictionary *info =
@@ -387,9 +418,12 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 	_player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
+	        __strong typeof(_self) self = _self;
+
 	        NSLog(@"assetStatusDidChange %@ assetStatus %ld SJAssetStatusReadyToPlay %ld",player,player.assetStatus,SJAssetStatusReadyToPlay);
 
 	        if(player.assetStatus == SJAssetStatusReadyToPlay) {
+
 			[player play];
 		}
 	        if(player.assetStatus == SJAssetStatusFailed) {
@@ -401,14 +435,18 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	};
 
 	_player.playbackObserver.playbackStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
-
+	        __strong typeof(_self) self = _self;
 	        NSLog(@"playbackStatusDidChange %@ %ld 预加载状态 %ld %ld",player,(long)player.timeControlStatus,(long)SJPlaybackTimeControlStatusWaitingToPlay,(long)player.playbackType);
 	        if(player.timeControlStatus == SJPlaybackTimeControlStatusPlaying) {
 			self->_sjbPlayer = nil;
+            if(self->_isLandscape){
+                self->_player.allowsRotationInFitOnScreen = YES;
+            }
+			
 		}
 	        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"playbackStatus"} err:nil delete:NO];
 	};
-	_player.view.backgroundColor = UIColor.greenColor;
+	_player.view.backgroundColor = UIColor.blackColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
 	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
 
@@ -433,132 +471,106 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 	_player.URLAsset = asset;
 	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！"} err:nil delete:YES];
-    [self setBottomButtons];
-}
--(void) setBottomButtons {
+	[self getBottomButtons];
 	[self setBottomButtons:false];
 }
--(void) setTopButtons{
-    //移除more按钮
+-(void) setTopButtons {
+	//移除more按钮
 //    SJEdgeControlButtonItem *moreItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
 //    if(moreItem){
 //        [_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_More];
 //    }
-    
+
 }
--(void) setBottomButtons:(BOOL)loading {
-
-	//设置底部按钮等
-	NSMutableArray<SJEdgeControlButtonItem *> *bottomButtonItems = [NSMutableArray arrayWithCapacity:2];
-	NSLog(@" mutable Array %@",bottomButtonItems);
+-(void) getBottomButtons {
 	//播放暂停按钮
-    if(!_playItem){
-        _playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
-    }
+	if(!_playItem) {
+		_playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
+	}
 	NSLog(@"playItem %@",_playItem);
-	_playItem.size = 20;
-	if(loading)
-		_playItem.hidden=YES;
-	else
-		_playItem.hidden = NO;
-    if(_playItem)
-	[bottomButtonItems addObject:_playItem];
-
+	_playItem.size = 30;
 	//下一集按钮
 	if(!_nextItem)
-        _nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
+		_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
 	NSLog(@"nextItem %@",_nextItem);
-
 	_nextItem.size=30;
-	if(loading)
-		_nextItem.hidden = YES;
-	else
-		_nextItem.hidden=NO;
-    if(_nextItem)
-	[bottomButtonItems addObject:_nextItem];
-
-
 	//直播按钮
 	if(!_liveItem)
-        _liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
+		_liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
 	NSLog(@"liveItem %@",_liveItem);
 	if(_liveItem) {
 		_liveItem.hidden = YES;
-		[bottomButtonItems addObject:_liveItem];
 	}
 
 	//当前进度时间
 	if(!_currentTimeItem)
-        _currentTimeItem= [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_CurrentTime];
-	if(loading)
-		_currentTimeItem.hidden = YES;
-	else
-		_currentTimeItem.hidden=NO;
-    NSLog(@"currentTimeItem %@",_currentTimeItem);
-    if(_currentTimeItem)
-	[bottomButtonItems addObject:_currentTimeItem];
+		_currentTimeItem= [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_CurrentTime];
+	NSLog(@"currentTimeItem %@",_currentTimeItem);
 
 	//时间间隔
 	if(!_separatorItem)
-        _separatorItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Separator];
-	if(loading)
-		_currentTimeItem.hidden=YES;
-	else
-		_currentTimeItem.hidden = NO;
-    NSLog(@"_separatorItem %@",_separatorItem);
-    if(_separatorItem)
-	[bottomButtonItems addObject:_separatorItem];
-
-
-
-	//总时间
-	if(!_durationTimeItem)
-        _durationTimeItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_DurationTime];
-	if(loading)
-		_durationTimeItem.hidden=YES;
-	else
-		_durationTimeItem.hidden = NO;
-    NSLog(@"_durationTimeItem %@",_durationTimeItem);
-    if(_durationTimeItem)
-	[bottomButtonItems addObject:_durationTimeItem];
-
+		_separatorItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Separator];
+	NSLog(@"_separatorItem %@",_separatorItem);
 
 
 	//播放进度条
 	if(!_progressItem)
-        _progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
-	if(loading)
-		_progressItem.hidden=YES;
-	else
-		_progressItem.hidden = NO;
-    NSLog(@"_progressItem %@",_progressItem);
-    if(_progressItem)
-	[bottomButtonItems addObject:_progressItem];
+		_progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
 
-	//调整播放速度
+	NSLog(@"_progressItem %@",_progressItem);
+
+	_progressItem.fill = YES;
+
+	//总时间
+	if(!_durationTimeItem)
+		_durationTimeItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_DurationTime];
+
+	NSLog(@"_durationTimeItem %@",_durationTimeItem);
+
 
 
 	//播放进度条
 	if(!_fullItem)
-        _fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
-	if(loading)
-		_fullItem.hidden=YES;
-	else
+		_fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
+	NSLog(@"_fullItem %@",_fullItem);
+	_fullItem.size = 30;
+
+
+	[_player.defaultEdgeControlLayer.bottomAdapter reload];
+}
+-(void) setBottomButtons:(BOOL)loading {
+
+	if(loading) {
+		_playItem.hidden = YES;
+		_nextItem.hidden = YES;
+		_currentTimeItem.hidden = YES;
+		_separatorItem.hidden = YES;
+		_durationTimeItem.hidden = YES;
+		_progressItem.hidden = YES;
+		_fullItem.hidden = YES;
+	}else{
+		_playItem.hidden = NO;
+
+		if(_player.isFullScreen) {
+			_nextItem.hidden = NO;
+		}else{
+			_nextItem.hidden = YES;
+		}
+		_currentTimeItem.hidden = NO;
+		_separatorItem.hidden = NO;
+		_durationTimeItem.hidden = NO;
+		_progressItem.hidden = NO;
 		_fullItem.hidden = NO;
-    
-    NSLog(@"_fullItem %@",_fullItem);
-    if(_fullItem)
-	[bottomButtonItems addObject:_fullItem];
 
+	}
 
-
-	NSLog(@"bottomButtonItems %@",bottomButtonItems);
-	if([bottomButtonItems count]>0) {
-		[_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
-		[_player.defaultEdgeControlLayer.bottomAdapter addItemsFromArray:bottomButtonItems];
+	NSLog(@"nextItem hidden %@",_nextItem.hidden?@"是":@"否");
+	NSLog(@"fullScree %@",_player.isFullScreen?@"是":@"否");
+	if(_player.isFullScreen) {
 		[_player.defaultEdgeControlLayer.bottomAdapter reload];
 	}
 }
+
 - (void)reloadItemWasTappedForControlLayer:(id<SJControlLayer>)controlLayer {
 	[self sendCustomEvent:@"" extra:_player.assetURL.absoluteURL];
 	[_player refresh];
@@ -571,32 +583,9 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 
 	[self sendCustomEvent:@"nextPlay" extra:@{@"code":@1,@"msg":@"播放下一集"}];
-//	if(_player.isFullScreen) {
-//		_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
-//		        NSLog(@"界面切换了 全屏");
-//		        if(!mgr.isFullscreen) {
-//				[self showBaseVideoPlayer:self->_preUrl];
-//			}
-//		};
-//		if ( _player.onlyUsedFitOnScreen ) {
-//			[_player setFitOnScreen:!_player.isFitOnScreen];
-//			return;
-//		}
-//
-//		if ( _player.usesFitOnScreenFirst && !_player.isFitOnScreen ) {
-//			[_player setFitOnScreen:YES];
-//			return;
-//		}
-//
-//		[_player rotate];
-//        UIView *testView = [[UIView alloc] initWithFrame:CGRectMake(0,100, 100, 50)];
-//        testView.backgroundColor=[UIColor yellowColor];
-//        [_player.view addSubview:testView];
-//	}else{
+
 	NSLog(@"viviviviviiv");
 	[self showBaseVideoPlayer:_preUrl];
-
-//	}
 
 }
 - (void) showBaseVideoPlayer:(NSString *)preUrl {
@@ -604,32 +593,27 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	if(_player.isFullScreen) {
 		_player.URLAsset = asset;
-		
-        [_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
+
+//		[_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
+		[self setBottomButtons:YES];
 		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 		        if(player.isPlaybackFinished) {
 				[player play];
 			}
 		};
 
-        //播放进度条
-        SJEdgeControlButtonItem *progressItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Progress];
-        progressItem.hidden=YES;
-
 	}else{
 		_sjbPlayer = SJBaseVideoPlayer.player;
-		_sjbPlayer.rotationManager.autorotationSupportedOrientations=NO;
+		_sjbPlayer.rotationManager.disabledAutorotation=YES;
 		_sjbPlayer.playbackObserver.playbackDidFinishExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull sjbPlayer) {
 		        if(sjbPlayer.isPlaybackFinished) {
 				[sjbPlayer play];
-				//            if(self && self->_player){
-				//                [self->_player play];
-				//            }
-
 			}
 
 		};
-		_sjbPlayer.view.backgroundColor= [UIColor blueColor];
+		_player.automaticallyPerformRotationOrFitOnScreen = NO;
+		_player.rotationManager.autorotationSupportedOrientations = NO;
+		_sjbPlayer.view.backgroundColor= [UIColor blackColor];
 		[_player.view addSubview:_sjbPlayer.view];
 		//    _sjbPlayer.view.frame = _player.view.bounds;
 		[_sjbPlayer.view mas_makeConstraints:^(MASConstraintMaker *make) {
@@ -915,7 +899,6 @@ JS_METHOD(playDownloadUrl:(UZModuleMethodContext *)context){
 
 	NSString * bofangUrl = [NSString stringWithFormat:@"%@",playbackURL.absoluteURL];
 	[context callbackWithRet:@{@"url":bofangUrl} err:nil delete:NO];
-	_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskPortrait;
 
 
 	//根据手机自动旋转
