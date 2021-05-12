@@ -29,6 +29,8 @@
 #import <SJUIKit/NSAttributedString+SJMake.h>
 
 static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
+
+static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104;
 @interface HNMediaPlayer ()<MCSAssetExportObserver>
 @property (nonatomic, strong) SJVideoPlayer *player;
 @property (nonatomic, strong) SJBaseVideoPlayer *sjbPlayer;
@@ -44,6 +46,7 @@ static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
 @property (nonatomic,strong) SJEdgeControlButtonItem *durationTimeItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *progressItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *fullItem;
+@property (nonatomic,strong) SJEdgeControlButtonItem *moreItem;
 @end
 
 @implementation HNMediaPlayer
@@ -351,13 +354,39 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	_player.usesFitOnScreenFirst = NO;
 
 	_player.allowsRotationInFitOnScreen = NO;
+
+	__weak typeof(self) _self = self;
 	if(isLandscape) {
 		NSLog(@"-90999-9-09-090-9-09-09-9-0");
 		_player.automaticallyPerformRotationOrFitOnScreen = NO;
 		_player.usesFitOnScreenFirst = YES;
-        _player.onlyUsedFitOnScreen = YES;
+		_player.onlyUsedFitOnScreen = YES;
 		_player.allowsRotationInFitOnScreen = YES;
-        _player.rotationManager.autorotationSupportedOrientations = NO;
+		_player.rotationManager.autorotationSupportedOrientations = NO;
+
+		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
+		        __strong typeof(_self) self = _self;
+		        if(self->_player.isFitOnScreen) {
+                    NSLog(@"fitOnScreen");
+                
+					SJEdgeControlButtonItem *customItem = [SJEdgeControlButtonItem.alloc initWithTag:SJEdgeControlLayerTopItem_MoreItem];
+					customItem.image = SJVideoPlayerConfigurations.shared.resources.moreImage;
+					[self->_player.defaultEdgeControlLayer.topAdapter addItem:customItem];
+                    SJEdgeControlButtonItem *moreItem = [self->_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
+					for ( SJEdgeControlButtonItemAction *action in moreItem.actions ) {
+						[customItem addAction:action];
+					}
+                    self->_player.allowsRotationInFitOnScreen = YES;
+            
+			}else{
+                
+                    NSLog(@"fitOnScreen nonono");
+				[self->_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_MoreItem];
+			}
+
+            
+            [self->_player.defaultEdgeControlLayer.topAdapter reload];
+		};
 	}
 
 	if (@available(iOS 14.0, *)) {
@@ -365,19 +394,26 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	} else {
 		// Fallback on earlier versions
 	}
-	__weak typeof(self) _self = self;
+
 	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
 	        __strong typeof(_self) self = _self;
 	        NSLog(@"已经全平了");
+
+
 	        if(self.player.isFullScreen) {
 			[self setBottomButtons:false];
-                self->_player.automaticallyPerformRotationOrFitOnScreen = YES;
-                self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
-            }else{
-                self->_player.automaticallyPerformRotationOrFitOnScreen = NO;
-                self->_player.rotationManager.autorotationSupportedOrientations = NO;
-            }
-        
+			self->_player.automaticallyPerformRotationOrFitOnScreen = YES;
+			self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
+//                self->_player.defaultEdgeControlLayer.showsMoreItem = YES;
+
+		}else{
+
+			self->_player.automaticallyPerformRotationOrFitOnScreen = NO;
+			self->_player.rotationManager.autorotationSupportedOrientations = NO;
+		}
+
+
+
 	};
 	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
@@ -439,10 +475,10 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        NSLog(@"playbackStatusDidChange %@ %ld 预加载状态 %ld %ld",player,(long)player.timeControlStatus,(long)SJPlaybackTimeControlStatusWaitingToPlay,(long)player.playbackType);
 	        if(player.timeControlStatus == SJPlaybackTimeControlStatusPlaying) {
 			self->_sjbPlayer = nil;
-            if(self->_isLandscape){
-                self->_player.allowsRotationInFitOnScreen = YES;
-            }
-			
+			if(self->_isLandscape) {
+				self->_player.allowsRotationInFitOnScreen = YES;
+			}
+
 		}
 	        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"playbackStatus"} err:nil delete:NO];
 	};
