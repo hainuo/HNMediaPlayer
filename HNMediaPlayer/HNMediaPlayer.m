@@ -38,6 +38,7 @@ static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSString *preUrl;
 @property (nonatomic) BOOL isLandscape;
+@property (nonatomic) BOOL needDoSeekStatus;
 @property (nonatomic,strong) SJEdgeControlButtonItem *playItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *nextItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *liveItem;
@@ -290,15 +291,22 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	NSString *referrer = [param stringValueForKey:@"referrer" defaultValue:nil];
 	NSString *userAgent = [param stringValueForKey:@"userAgent" defaultValue:nil];
 	BOOL isLandscape = [param boolValueForKey:@"isLandscape" defaultValue:NO];
+	float seekTimeTo = [param floatValueForKey:@"seekTimeTo" defaultValue:0.0];
 	NSLog(@"rect %@",rect);
-
+	NSLog(@"seekTimeTo %f",seekTimeTo);
+	if(seekTimeTo>0) {
+		_needDoSeekStatus=YES;
+	}else{
+		_needDoSeekStatus=NO;
+	}
+	NSLog(@"_needDoSeekStatus %@",_needDoSeekStatus?@1:@0);
 	_isLandscape = isLandscape;
 	NSLog(@"初始headers %@",headers);
 	//不再对url进行任何处理 所有传入的url必须是正常的url也就是 经过urlencode转移过 query参数的url
 //    url = [url stringByRemovingPercentEncoding];
 //    NSLog(@"url %@",url);
-    url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
-	NSLog(@"url %@",url);
+//    url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
+//	NSLog(@"url %@",url);
 
 	BOOL fixed = [param boolValueForKey:@"fixed" defaultValue:YES];
 
@@ -323,7 +331,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
 		        __strong typeof(_self) self = _self;
-            [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} ];
+		        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} ];
 //		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} err:nil delete:NO];
 		        if(self->_player.isFitOnScreen) {
 				NSLog(@"fitOnScreen");
@@ -357,8 +365,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
 	        __strong typeof(_self) self = _self;
-        NSLog(@"已经全平了");
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} ];
+	        NSLog(@"已经全平了");
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} ];
 //	        [context callbackWithRet:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} err:nil delete:NO];
 
 	        if(self.player.isFullScreen) {
@@ -378,17 +386,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	};
 	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
-        __strong typeof(_self) self = _self;
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"}];
+	        __strong typeof(_self) self = _self;
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"}];
 //        [context callbackWithRet:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"} err:nil delete:NO];
 	};
 	_player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
-        __strong typeof(_self) self = _self;
+	        __strong typeof(_self) self = _self;
 //	        NSLog(@"durationDidChangeExeBlock %@",player);
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"}];
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"}];
 //        [context callbackWithRet:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"} err:nil delete:NO];
 	};
-	
+
 	_player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 	        __strong typeof(_self) self = _self;
 
@@ -403,13 +411,13 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			[self sendCustomEvent:@"failLoadUrl" extra:@{@"url":[NSString stringWithFormat:@"%@",self->_player.assetURL]}];
 
 			self->_player.defaultLoadFailedControlLayer.reloadView.button.hidden = NO;
-            [self->_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
-            [self->_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
+			[self->_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
+			[self->_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
 			self->_player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换视频源";
 			self->_sjbPlayer = nil;
 		}
-        
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1}];
+
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1}];
 //        NSDictionary *ret =@{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1} ;
 //	        [context callbackWithRet:ret err:nil delete:NO];
 	};
@@ -423,16 +431,18 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 				self->_player.allowsRotationInFitOnScreen = YES;
 			}
 
+			[self seekTimeTo:seekTimeTo];
+
 		}
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)}];
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)}];
 //        [context callbackWithRet:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)} err:nil delete:NO];
 	};
-    
-    _player.playbackObserver.rateDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
+
+	_player.playbackObserver.rateDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]} err:nil delete:NO];
-        __strong typeof(_self) self = _self;
-        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]}];
-    };
+	        __strong typeof(_self) self = _self;
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]}];
+	};
 	_player.view.backgroundColor = UIColor.blackColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
 	[self addSubview:_player.view fixedOn:fixedOn fixed:fixed];
@@ -456,30 +466,30 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		NSLog(@"no preUrl");
 	}
-    [self getBottomButtons];
-    [self setBottomButtons:false];
+	[self getBottomButtons];
+	[self setBottomButtons:false];
 	if(![url isEqualToString:preUrl]) {
-        NSURL *nsUrl = [NSURL URLWithString:url];
-        NSLog(@"nsurl %@",nsUrl);
-        if(nsUrl == nil){
-            [_player.switcher switchControlLayerForIdentifier:SJControlLayer_LoadFailed];
-            _player.defaultLoadFailedControlLayer.reloadView.button.hidden = NO;
-            [_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
-            if(!_player.isFullScreen && !_player.isFitOnScreen){
-               SJEdgeControlButtonItem *backItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_Back];
-                backItem.hidden = YES;
-                [_player.defaultEdgeControlLayer.topAdapter reload];
-            }
-            [_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
-            _player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换视频源";
-            _sjbPlayer = nil;
-            [context callbackWithRet:@{@"code":@0,@"msg":@"播放设置失败，链接有误！",@"type":@"action"} err:nil delete:YES];
-            return;
-        }
-        NSLog(@"url 和 preUrl 不同");
+		NSURL *nsUrl = [NSURL URLWithString:url];
+		NSLog(@"nsurl %@",nsUrl);
+		if(nsUrl == nil) {
+			[_player.switcher switchControlLayerForIdentifier:SJControlLayer_LoadFailed];
+			_player.defaultLoadFailedControlLayer.reloadView.button.hidden = NO;
+			[_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
+			if(!_player.isFullScreen && !_player.isFitOnScreen) {
+				SJEdgeControlButtonItem *backItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_Back];
+				backItem.hidden = YES;
+				[_player.defaultEdgeControlLayer.topAdapter reload];
+			}
+			[_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
+			_player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换视频源";
+			_sjbPlayer = nil;
+			[context callbackWithRet:@{@"code":@0,@"msg":@"播放设置失败，链接有误！",@"type":@"action"} err:nil delete:YES];
+			return;
+		}
+		NSLog(@"url 和 preUrl 不同");
 		SJVideoPlayerURLAsset *asset;
-        NSLog(@"当前使用referre %@",referrer);
-        if(referrer) {
+		NSLog(@"当前使用referre %@",referrer);
+		if(referrer) {
 			NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
 			[MGheaders setObject:referrer forKey:@"referrer"];
 			if(userAgent) {
@@ -492,7 +502,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 //        if(!headers){
 //            headers = [NSString stringWithFormat:@"referer:%@\r\nuser-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36\r\n" ,referrer];
 //        }
-        
+
 		}else{
 			asset = [SJVideoPlayerURLAsset.alloc initWithURL:nsUrl];
 		}
@@ -511,7 +521,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			NSLog(@"当前使用的播放器为IJKPLayer");
 		}else{
 			NSLog(@"当前使用的播放器为SJVideoPlayer");
-            _player.playbackController = nil;
+			_player.playbackController = nil;
 		}
 		NSLog(@"最终headers %@",headers);
 
@@ -520,11 +530,45 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			asset.title = title;
 		}
 		_player.URLAsset = asset;
-    }else{
-        NSLog(@"url 和 preUrl 相同");
-    }
+	}else{
+		NSLog(@"url 和 preUrl 相同");
+	}
 	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！",@"type":@"action"} err:nil delete:YES];
-	
+
+}
+-(void) seekTimeTo:(float)seekTimeTo {
+	if(seekTimeTo > 0 && self->_needDoSeekStatus) {
+		if(seekTimeTo < self->_player.duration) {
+			NSLog(@"seekTimeTo: %f",seekTimeTo);
+			[self->_player seekToTime:(int)seekTimeTo completionHandler:^(BOOL finished) {
+			         NSMutableDictionary *ret = @{}.mutableCopy;
+			         [ret setValue:@"seekTimeStatus" forKey:@"type"];
+			         [ret setValue:@1 forKey:@"code"];
+			         if(finished) {
+					 [ret setValue:@"操作成功" forKey:@"msg"];
+					 [ret setValue:@1 forKey:@"status"];
+					 self->_needDoSeekStatus=NO;
+				 }else{
+					 [ret setValue:@"操作失败" forKey:@"msg"];
+					 [ret setValue:@0 forKey:@"status"];
+				 }
+			         NSLog(@"seekTimeStatus ret is %@",ret);
+			         [self sendCustomEvent:@"hnPlayEvent" extra:ret];
+			 }];
+		}else{
+
+			NSMutableDictionary *ret = @{}.mutableCopy;
+			[ret setValue:@"seekTimeStatus" forKey:@"type"];
+			[ret setValue:@"操作失败，时间超过最大播放时间" forKey:@"msg"];
+			[ret setValue:@0 forKey:@"status"];
+			[ret setValue:@0 forKey:@"code"];
+			NSLog(@"不需要seektime");
+			NSLog(@"seekTimeStatus ret is %@",ret);
+			[self sendCustomEvent:@"hnPlayEvent" extra:ret];
+		}
+	}else{
+		NSLog(@"不需要seektime");
+	}
 }
 -(void) setTopButtons {
 	//移除more按钮
@@ -669,10 +713,26 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 
 }
-
+JS_METHOD(seekTimeTo:(UZModuleMethodContext *)context){
+	if(!_player || (_player.assetStatus != SJAssetStatusReadyToPlay)) {
+		[context callbackWithRet:@{@"msg":@"没有找到播放器或者播放器资源没有准备好，跳转到指定时间操作失败",@"code":@0} err:nil delete:YES];
+	}else{
+		NSDictionary *param = context.param;
+		float seekTimeTo = [param floatValueForKey:@"seekTimeTo" defaultValue:0.0];
+		NSLog(@"seekTimeTo %f",seekTimeTo);
+		if(seekTimeTo>0) {
+			_needDoSeekStatus=YES;
+		}else{
+			_needDoSeekStatus=NO;
+		}
+		NSLog(@"_needDoSeekStatus %@",_needDoSeekStatus?@1:@0);
+		[self  seekTimeTo:seekTimeTo];
+		[context callbackWithRet:@{@"msg":@"操作设置成功！",@"code":@1} err:nil delete:YES];
+	}
+}
 JS_METHOD(stop:(UZModuleMethodContext *)context){
 	if(!_player) {
-		[context callbackWithRet:@{@"msg":@"没有找到播放器",@"code":@0} err:nil delete:YES];
+		[context callbackWithRet:@{@"msg":@"没有找到播放器，停止操作失败",@"code":@0} err:nil delete:YES];
 	}else{
 		NSDictionary *param = context.param;
 		NSString *preUrl = [param stringValueForKey:@"preUrl" defaultValue:nil];
@@ -707,7 +767,7 @@ JS_METHOD(stop:(UZModuleMethodContext *)context){
 
 JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
+		return @{@"msg":@"没有找到播放器，暂停操作失败",@"code":@0};
 	}
 	[_player pauseForUser];
 
@@ -722,7 +782,7 @@ JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
 
 JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
+		return @{@"msg":@"没有找到播放器，恢复播放操作失败",@"code":@0};
 	}
 	if(_player.isPlaying) {
 		return @{@"msg":@"播放中！",@"type":@"playing",@"code":@1};
@@ -746,7 +806,7 @@ JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
 
 JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"err":@{@"msg":@"没有找到播放器",@"code":@0}};
+		return @{@"err":@{@"msg":@"没有找到播放器，播放器暂停状态查询失败！",@"code":@0}};
 	}
 
 	if(_player.isUserPaused || _player.isPaused) {
@@ -760,7 +820,7 @@ JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
  */
 JS_METHOD_SYNC(isPlayed:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
+		return @{@"msg":@"没有找到播放器，获取播放状态失败",@"code":@0};
 	}
 
 	if(_player.isPlayed) {
@@ -774,7 +834,7 @@ JS_METHOD_SYNC(isPlayed:(UZModuleMethodContext *)context){
  */
 JS_METHOD_SYNC(isPlaying:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
+		return @{@"msg":@"没有找到播放器，获取播放器正在播放状态失败",@"code":@0};
 	}
 
 	if(_player.isPlaying) {
@@ -788,7 +848,7 @@ JS_METHOD_SYNC(isPlaying:(UZModuleMethodContext *)context){
  */
 JS_METHOD_SYNC(isPlaybackFinished:(UZModuleMethodContext *)context){
 	if(!_player) {
-		return @{@"msg":@"没有找到播放器",@"code":@0};
+		return @{@"msg":@"没有找到播放器，获取播放结束状态失败",@"code":@0};
 	}
 
 	if(_player.isPlaybackFinished) {
