@@ -307,49 +307,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
 	float height = [rect floatValueForKey:@"height" defaultValue:300];
 
-	SJVideoPlayerURLAsset *asset;
-	if(referrer) {
-		NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
-		[MGheaders setObject:referrer forKey:@"referrer"];
-		if(userAgent) {
-
-			[MGheaders setObject:userAgent forKey:@"user-agent"];
-		}
-		AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:url] options:@{@"AVURLAssetHTTPHeaderFieldsKey" : MGheaders}];
-
-		asset = [[SJVideoPlayerURLAsset alloc] initWithAVAsset:avUrlAsset];
-//        if(!headers){
-//            headers = [NSString stringWithFormat:@"referer:%@\r\nuser-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36\r\n" ,referrer];
-//        }
-
-	}else{
-		asset = [SJVideoPlayerURLAsset.alloc initWithURL:[NSURL URLWithString:url]];
-	}
-	NSLog(@"当前使用referre %@",referrer);
-
-
-	NSLog(@"ret %@",asset);
-
-//    NSRange rangeBilibili=[url rangeOfString:@"bilibili"];
-	if(headers) {
-		SJIJKMediaPlaybackController *controller = SJIJKMediaPlaybackController.new;
-		IJKFFOptions *options = [IJKFFOptions optionsByDefault];
-		if(headers) {
-			[options setFormatOptionValue:headers forKey:@"headers"];
-		}
-		controller.options = options;
-
-		_player.playbackController = controller;
-		NSLog(@"当前使用的播放器为IJKPLayer");
-	}else{
-		NSLog(@"当前使用的播放器为SJVideoPlayer");
-	}
-	NSLog(@"最终headers %@",headers);
-
-
-	if(title) {
-		asset.title = title;
-	}
 	_player.automaticallyPerformRotationOrFitOnScreen = NO;
 	_player.usesFitOnScreenFirst = NO;
 
@@ -366,28 +323,30 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
 		        __strong typeof(_self) self = _self;
+		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功"} err:nil delete:NO];
 		        if(self->_player.isFitOnScreen) {
-                    NSLog(@"fitOnScreen");
-                
-					SJEdgeControlButtonItem *customItem = [SJEdgeControlButtonItem.alloc initWithTag:SJEdgeControlLayerTopItem_MoreItem];
-					customItem.image = SJVideoPlayerConfigurations.shared.resources.moreImage;
-					[self->_player.defaultEdgeControlLayer.topAdapter addItem:customItem];
-                    SJEdgeControlButtonItem *moreItem = [self->_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
-					for ( SJEdgeControlButtonItemAction *action in moreItem.actions ) {
-						[customItem addAction:action];
-					}
-                    self->_player.allowsRotationInFitOnScreen = YES;
-            
+				NSLog(@"fitOnScreen");
+
+				SJEdgeControlButtonItem *customItem = [SJEdgeControlButtonItem.alloc initWithTag:SJEdgeControlLayerTopItem_MoreItem];
+				customItem.image = SJVideoPlayerConfigurations.shared.resources.moreImage;
+				[self->_player.defaultEdgeControlLayer.topAdapter addItem:customItem];
+				SJEdgeControlButtonItem *moreItem = [self->_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_More];
+				for ( SJEdgeControlButtonItemAction *action in moreItem.actions ) {
+					[customItem addAction:action];
+				}
+				self->_player.allowsRotationInFitOnScreen = YES;
+
 			}else{
-                
-                    NSLog(@"fitOnScreen nonono");
+
+				NSLog(@"fitOnScreen nonono");
 				[self->_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_MoreItem];
 			}
 
-            
-            [self->_player.defaultEdgeControlLayer.topAdapter reload];
+
+		        [self->_player.defaultEdgeControlLayer.topAdapter reload];
 		};
 	}
+
 
 	if (@available(iOS 14.0, *)) {
 		_player.defaultEdgeControlLayer.automaticallyShowsPictureInPictureItem = NO;
@@ -398,7 +357,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
 	        __strong typeof(_self) self = _self;
 	        NSLog(@"已经全平了");
-
+	        [context callbackWithRet:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功"} err:nil delete:NO];
 
 	        if(self.player.isFullScreen) {
 			[self setBottomButtons:false];
@@ -417,15 +376,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	};
 	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
-	        NSDictionary *info =
-			@{
-	                @"type":@"currentTimeChanged",
-	                MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
-	                MPMediaItemPropertyPlaybackDuration:@(player.duration),
-	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
-		};
-	        NSDictionary *ret = @{@"info":info};
-	        [context callbackWithRet:ret err:nil delete:NO];
+
+	        [context callbackWithRet:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.playableDuration),@"msg":@"播放时间变动"} err:nil delete:NO];
+//	        NSDictionary *info =
+//			@{
+//	                @"type":@"currentTimeChanged",
+//	                MPNowPlayingInfoPropertyElapsedPlaybackTime:@(player.currentTime),
+//	                MPMediaItemPropertyPlaybackDuration:@(player.duration),
+//	                MPNowPlayingInfoPropertyPlaybackRate:@(player.rate)
+//		};
+//	        NSDictionary *ret = @{@"info":info};
+//	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 	_player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
 
@@ -453,6 +414,11 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        NSDictionary *ret = @{@"info":info};
 	        [context callbackWithRet:ret err:nil delete:NO];
 	};
+
+
+
+
+
 	_player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 	        __strong typeof(_self) self = _self;
 
@@ -461,12 +427,34 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        if(player.assetStatus == SJAssetStatusReadyToPlay) {
 
 			[player play];
-		}
-	        if(player.assetStatus == SJAssetStatusFailed) {
-			NSLog(@"当前链接加载失败，不能播放");
+		}else if(player.assetStatus == SJAssetStatusFailed) {
+			NSLog(@"当前链接加载失败，不能播放 %@",self->_player.assetURL);
+
+			[self sendCustomEvent:@"failLoadUrl" extra:@{@"url":[NSString stringWithFormat:@"%@",self->_player.assetURL]}];
+//            [self->_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"一键反馈并重试" forState:UIControlStateNormal];
+//            [self->_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
+			self->_player.defaultLoadFailedControlLayer.reloadView.button.hidden = YES;
+
+			self->_player.defaultNotReachableControlLayer.reloadView.button.hidden = YES;
+
+			self->_player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，错误已上报，请切换来源";
+
+//                UIButton *iButton  = [UIButton buttonWithType:UIButtonTypeCustom];
+//                [iButton setTitle:@"一键上报" forState:UIControlStateNormal];
+//                [iButton addTarget:self action:@selector(reloadItemWasTappedForControlLayer) forControlEvents:UIControlEventTouchUpInside];
+//                [self->_player.defaultLoadFailedControlLayer addSubview:iButton];
+//                iButton.titleLabel.font = [UIFont systemFontOfSize:14];
+//                iButton.backgroundColor = SJVideoPlayerConfigurations.shared.resources.noNetworkButtonBackgroundColor;
+//                iButton.layer.cornerRadius = 10;
+//
+//                [iButton mas_makeConstraints:^(MASConstraintMaker *make) {
+//                    make.top.equalTo(self->_player.defaultLoadFailedControlLayer.promptLabel.mas_bottom).offset(20);
+//                    make.centerX.offset(0);
+//                }];
+
 			self->_sjbPlayer = nil;
 		}
-	        NSDictionary *ret = @{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"操作成功"};
+	        NSDictionary *ret = @{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"操作成功",@"code":@1};
 	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 
@@ -505,7 +493,55 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		NSLog(@"no preUrl");
 	}
-	_player.URLAsset = asset;
+	if(![url isEqualToString:preUrl]) {
+        NSLog(@"url 和 preUrl 不同");
+		SJVideoPlayerURLAsset *asset;
+		if(referrer) {
+			NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
+			[MGheaders setObject:referrer forKey:@"referrer"];
+			if(userAgent) {
+
+				[MGheaders setObject:userAgent forKey:@"user-agent"];
+			}
+			AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:url] options:@{@"AVURLAssetHTTPHeaderFieldsKey" : MGheaders}];
+
+			asset = [[SJVideoPlayerURLAsset alloc] initWithAVAsset:avUrlAsset];
+//        if(!headers){
+//            headers = [NSString stringWithFormat:@"referer:%@\r\nuser-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36\r\n" ,referrer];
+//        }
+
+		}else{
+			asset = [SJVideoPlayerURLAsset.alloc initWithURL:[NSURL URLWithString:url]];
+		}
+		NSLog(@"当前使用referre %@",referrer);
+
+
+		NSLog(@"ret %@",asset);
+
+//    NSRange rangeBilibili=[url rangeOfString:@"bilibili"];
+		if(headers) {
+			SJIJKMediaPlaybackController *controller = SJIJKMediaPlaybackController.new;
+			IJKFFOptions *options = [IJKFFOptions optionsByDefault];
+			if(headers) {
+				[options setFormatOptionValue:headers forKey:@"headers"];
+			}
+			controller.options = options;
+
+			_player.playbackController = controller;
+			NSLog(@"当前使用的播放器为IJKPLayer");
+		}else{
+			NSLog(@"当前使用的播放器为SJVideoPlayer");
+		}
+		NSLog(@"最终headers %@",headers);
+
+
+		if(title) {
+			asset.title = title;
+		}
+		_player.URLAsset = asset;
+    }else{
+        NSLog(@"url 和 preUrl 相同");
+    }
 	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！"} err:nil delete:YES];
 	[self getBottomButtons];
 	[self setBottomButtons:false];
@@ -605,13 +641,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(_player.isFullScreen) {
 		[_player.defaultEdgeControlLayer.bottomAdapter reload];
 	}
-}
-
-- (void)reloadItemWasTappedForControlLayer:(id<SJControlLayer>)controlLayer {
-	[self sendCustomEvent:@"" extra:_player.assetURL.absoluteURL];
-	[_player refresh];
-	[_player.switcher switchControlLayerForIdentifier:SJControlLayer_Edge];
-
 }
 - (void) nextPlayClick {
 	if(_preUrl) {
