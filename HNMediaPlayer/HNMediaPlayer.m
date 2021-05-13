@@ -297,7 +297,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	//不再对url进行任何处理 所有传入的url必须是正常的url也就是 经过urlencode转移过 query参数的url
 //    url = [url stringByRemovingPercentEncoding];
 //    NSLog(@"url %@",url);
-//    url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
+    url = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet  URLQueryAllowedCharacterSet]];
 	NSLog(@"url %@",url);
 
 	BOOL fixed = [param boolValueForKey:@"fixed" defaultValue:YES];
@@ -323,7 +323,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
 		        __strong typeof(_self) self = _self;
-		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} err:nil delete:NO];
+            [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} ];
+//		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} err:nil delete:NO];
 		        if(self->_player.isFitOnScreen) {
 				NSLog(@"fitOnScreen");
 
@@ -356,8 +357,9 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
 	        __strong typeof(_self) self = _self;
-	        NSLog(@"已经全平了");
-	        [context callbackWithRet:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} err:nil delete:NO];
+        NSLog(@"已经全平了");
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} ];
+//	        [context callbackWithRet:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} err:nil delete:NO];
 
 	        if(self.player.isFullScreen) {
 			[self setBottomButtons:false];
@@ -376,13 +378,15 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	};
 	_player.playbackObserver.currentTimeDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //	        NSLog(@"currentTimeDidChangeExeBlock %@",player);
-
-        [context callbackWithRet:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"} err:nil delete:NO];
+        __strong typeof(_self) self = _self;
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"}];
+//        [context callbackWithRet:@{@"code":@1,@"type":@"currentTimeChanged",@"currentTime":@(player.currentTime),@"duration":@(player.duration),@"durationWatched":@(player.durationWatched),@"":@(player.durationWatched),@"rate":[NSString stringWithFormat:@"%.2f",player.rate],@"msg":@"当前时间改变的回调"} err:nil delete:NO];
 	};
 	_player.playbackObserver.durationDidChangeExeBlock=^(__kindof SJBaseVideoPlayer *player){
-
+        __strong typeof(_self) self = _self;
 //	        NSLog(@"durationDidChangeExeBlock %@",player);
-        [context callbackWithRet:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"} err:nil delete:NO];
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"}];
+//        [context callbackWithRet:@{@"code":@1,@"type":@"durationChanged",@"duration":@(player.duration),@"msg":@"播放时长改变的回调"} err:nil delete:NO];
 	};
 	
 	_player.playbackObserver.assetStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
@@ -401,11 +405,13 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			self->_player.defaultLoadFailedControlLayer.reloadView.button.hidden = NO;
             [self->_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
             [self->_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
-			self->_player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换来源";
+			self->_player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换视频源";
 			self->_sjbPlayer = nil;
 		}
-	        NSDictionary *ret = @{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1};
-	        [context callbackWithRet:ret err:nil delete:NO];
+        
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1}];
+//        NSDictionary *ret =@{@"status":@(player.assetStatus),@"type":@"assetStatus",@"msg":@"资源状态改变的回调",@"code":@1} ;
+//	        [context callbackWithRet:ret err:nil delete:NO];
 	};
 
 	_player.playbackObserver.playbackStatusDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
@@ -418,12 +424,14 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			}
 
 		}
-
-        [context callbackWithRet:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)} err:nil delete:NO];
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)}];
+//        [context callbackWithRet:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)} err:nil delete:NO];
 	};
     
     _player.playbackObserver.rateDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
-        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]} err:nil delete:NO];
+//        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]} err:nil delete:NO];
+        __strong typeof(_self) self = _self;
+        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]}];
     };
 	_player.view.backgroundColor = UIColor.blackColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
@@ -463,7 +471,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
                 [_player.defaultEdgeControlLayer.topAdapter reload];
             }
             [_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
-            _player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换来源";
+            _player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换视频源";
             _sjbPlayer = nil;
             [context callbackWithRet:@{@"code":@0,@"msg":@"播放设置失败，链接有误！",@"type":@"action"} err:nil delete:YES];
             return;
@@ -515,7 +523,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
     }else{
         NSLog(@"url 和 preUrl 相同");
     }
-	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！",@"type":@"action"} err:nil delete:NO];
+	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！",@"type":@"action"} err:nil delete:YES];
 	
 }
 -(void) setTopButtons {
