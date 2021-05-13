@@ -448,29 +448,46 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		NSLog(@"no preUrl");
 	}
+    [self getBottomButtons];
+    [self setBottomButtons:false];
 	if(![url isEqualToString:preUrl]) {
+        NSURL *nsUrl = [NSURL URLWithString:url];
+        NSLog(@"nsurl %@",nsUrl);
+        if(nsUrl == nil){
+            [_player.switcher switchControlLayerForIdentifier:SJControlLayer_LoadFailed];
+            _player.defaultLoadFailedControlLayer.reloadView.button.hidden = NO;
+            [_player.defaultLoadFailedControlLayer.reloadView.button setTitle:@"已自动反馈" forState:UIControlStateNormal];
+            if(!_player.isFullScreen && !_player.isFitOnScreen){
+               SJEdgeControlButtonItem *backItem = [_player.defaultEdgeControlLayer.topAdapter itemForTag:SJEdgeControlLayerTopItem_Back];
+                backItem.hidden = YES;
+                [_player.defaultEdgeControlLayer.topAdapter reload];
+            }
+            [_player.defaultLoadFailedControlLayer.reloadView.button removeTarget:nil action:NULL forControlEvents:UIControlEventTouchUpInside];
+            _player.defaultLoadFailedControlLayer.promptLabel.text = @"视频加载失败，请切换来源";
+            _sjbPlayer = nil;
+            [context callbackWithRet:@{@"code":@0,@"msg":@"播放设置失败，链接有误！",@"type":@"action"} err:nil delete:YES];
+            return;
+        }
         NSLog(@"url 和 preUrl 不同");
 		SJVideoPlayerURLAsset *asset;
-		if(referrer) {
+        NSLog(@"当前使用referre %@",referrer);
+        if(referrer) {
 			NSMutableDictionary * MGheaders = [NSMutableDictionary dictionary];
 			[MGheaders setObject:referrer forKey:@"referrer"];
 			if(userAgent) {
 
 				[MGheaders setObject:userAgent forKey:@"user-agent"];
 			}
-			AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:url] options:@{@"AVURLAssetHTTPHeaderFieldsKey" : MGheaders}];
+			AVURLAsset *avUrlAsset = [AVURLAsset URLAssetWithURL:nsUrl options:@{@"AVURLAssetHTTPHeaderFieldsKey" : MGheaders}];
 
 			asset = [[SJVideoPlayerURLAsset alloc] initWithAVAsset:avUrlAsset];
 //        if(!headers){
 //            headers = [NSString stringWithFormat:@"referer:%@\r\nuser-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36\r\n" ,referrer];
 //        }
-
+        
 		}else{
-			asset = [SJVideoPlayerURLAsset.alloc initWithURL:[NSURL URLWithString:url]];
+			asset = [SJVideoPlayerURLAsset.alloc initWithURL:nsUrl];
 		}
-		NSLog(@"当前使用referre %@",referrer);
-
-
 		NSLog(@"ret %@",asset);
 
 //    NSRange rangeBilibili=[url rangeOfString:@"bilibili"];
@@ -486,6 +503,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			NSLog(@"当前使用的播放器为IJKPLayer");
 		}else{
 			NSLog(@"当前使用的播放器为SJVideoPlayer");
+            _player.playbackController = nil;
 		}
 		NSLog(@"最终headers %@",headers);
 
@@ -497,9 +515,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
     }else{
         NSLog(@"url 和 preUrl 相同");
     }
-	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！"} err:nil delete:NO];
-	[self getBottomButtons];
-	[self setBottomButtons:false];
+	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！",@"type":@"action"} err:nil delete:NO];
+	
 }
 -(void) setTopButtons {
 	//移除more按钮
