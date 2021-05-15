@@ -336,7 +336,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 //		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} err:nil delete:NO];
 		        if(self->_player.isFitOnScreen) {
 				NSLog(@"fitOnScreen");
-
+                    self->_isFullScreen=YES;
 				SJEdgeControlButtonItem *customItem = [SJEdgeControlButtonItem.alloc initWithTag:SJEdgeControlLayerTopItem_MoreItem];
 				customItem.image = SJVideoPlayerConfigurations.shared.resources.moreImage;
 				[self->_player.defaultEdgeControlLayer.topAdapter addItem:customItem];
@@ -347,13 +347,16 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 				self->_player.allowsRotationInFitOnScreen = YES;
 
 			}else{
-
+                self->_isFullScreen=NO;
 				NSLog(@"fitOnScreen nonono");
 				[self->_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_MoreItem];
 			}
 
 
-		        [self->_player.defaultEdgeControlLayer.topAdapter reload];
+            [self->_player.defaultEdgeControlLayer.topAdapter reload];
+            
+            [self setBottomButtons:false];
+            NSLog(@"当前的mgr状态 _isFullScreen %@",self->_isFullScreen?@"是":@"否");
 		};
 	}
 
