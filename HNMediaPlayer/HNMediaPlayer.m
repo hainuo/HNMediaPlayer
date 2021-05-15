@@ -472,7 +472,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		NSLog(@"no preUrl");
 	}
-	[self getBottomButtons];
 	[self setBottomButtons:false];
 	if(![url isEqualToString:preUrl]) {
 		NSURL *nsUrl = [NSURL URLWithString:url];
@@ -599,7 +598,9 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
 			[_player.defaultEdgeControlLayer.bottomAdapter insertItem:_nextItem rearItem:SJEdgeControlLayerBottomItem_CurrentTime];
 		}
-	}
+    }else{
+        _nextItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
+    }
 
 	NSLog(@"nextItem %@",_nextItem);
 	_nextItem.size = buttonItemDefaultSize;
@@ -648,7 +649,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	[_player.defaultEdgeControlLayer.bottomAdapter reload];
 }
 -(void) setBottomButtons:(BOOL)loading {
-
+    [self getBottomButtons];
 	if(loading) {
 		_playItem.hidden = YES;
 		_nextItem.hidden = YES;
@@ -657,7 +658,10 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_durationTimeItem.hidden = YES;
 		_progressItem.hidden = YES;
 		_fullItem.hidden = YES;
-        
+
+		_player.defaultEdgeControlLayer.bottomAdapter.view.hidden = YES;
+        _player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = YES;
+
 	}else{
 		_playItem.hidden = NO;
 
@@ -673,12 +677,29 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_durationTimeItem.hidden = NO;
 		_progressItem.hidden = NO;
 		_fullItem.hidden = NO;
-
+		_player.defaultEdgeControlLayer.bottomAdapter.view.hidden = NO;
+        _player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = NO;
 	}
 
 
 	[_player.defaultEdgeControlLayer.bottomAdapter reload];
 
+}
+-(void)setTopButtons:(BOOL) loading {
+
+	SJEdgeControlButtonItem *buttonItem = [[SJEdgeControlButtonItem alloc] initWithTag:SJEdgeControlLayerTopItem_MoreItem];
+	if(loading) {
+		_player.defaultEdgeControlLayer.showsMoreItem = NO;
+		if(buttonItem) {
+			buttonItem.hidden = YES;
+		}
+	}else if(buttonItem && _isFullScreen) {
+		_player.defaultEdgeControlLayer.showsMoreItem = YES;
+        buttonItem.hidden = NO;
+	}
+
+
+	[_player.defaultEdgeControlLayer.topAdapter reload];
 }
 - (void) nextPlayClick {
 	if(_preUrl) {
