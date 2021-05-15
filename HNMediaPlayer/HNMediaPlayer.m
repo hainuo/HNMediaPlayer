@@ -592,8 +592,15 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	NSLog(@"playItem %@",_playItem);
 	_playItem.size = buttonItemDefaultSize;
 	//下一集按钮
-	if(!_nextItem)
-		_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
+	if(!_nextItem) {
+		_nextItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
+		if(!_nextItem) {
+			NSLog(@"nextItem 没有 这个东西 %@",_nextItem.hidden?@"是":@"否");
+			_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
+			[_player.defaultEdgeControlLayer.bottomAdapter insertItem:_nextItem rearItem:SJEdgeControlLayerBottomItem_CurrentTime];
+		}
+	}
+
 	NSLog(@"nextItem %@",_nextItem);
 	_nextItem.size = buttonItemDefaultSize;
 	//直播按钮
@@ -650,13 +657,16 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_durationTimeItem.hidden = YES;
 		_progressItem.hidden = YES;
 		_fullItem.hidden = YES;
+        
 	}else{
 		_playItem.hidden = NO;
 
 		if(_isFullScreen) {
 			_nextItem.hidden = NO;
+			NSLog(@"nextItem  当前是全屏 %@",_nextItem.hidden?@"是":@"否");
 		}else{
 			_nextItem.hidden = YES;
+			NSLog(@"nextItem  当前不是全屏 %@",_nextItem.hidden?@"是":@"否");
 		}
 		_currentTimeItem.hidden = NO;
 		_separatorItem.hidden = NO;
@@ -666,28 +676,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	}
 
-	SJEdgeControlButtonItem *nextButtonItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
-	if(!nextButtonItem) {
-		NSLog(@"nextItem 没有 这个东西 %@",_nextItem.hidden?@"是":@"否");
-		nextButtonItem = _nextItem;
-
-		NSLog(@"nextItem  添加按钮");
-		[_player.defaultEdgeControlLayer.bottomAdapter insertItem:nextButtonItem rearItem:SJEdgeControlLayerBottomItem_CurrentTime];
-
-	}else{
-		NSLog(@"nextItem 有这个东西 %@",_nextItem.hidden?@"是":@"否");
-
-	}
-
-	if(_isFullScreen) {
-		nextButtonItem.hidden = NO;
-		NSLog(@"nextItem  当前是全屏 %@",_nextItem.hidden?@"是":@"否");
-	}else{
-		nextButtonItem.hidden = YES;
-		NSLog(@"nextItem  当前不是全屏 %@",_nextItem.hidden?@"是":@"否");
-	}
-	NSLog(@"nextItem hidden %@",_nextItem.hidden?@"是":@"否");
-	NSLog(@"_fullScreeItem %@",_isFullScreen?@"是":@"否");
 
 	[_player.defaultEdgeControlLayer.bottomAdapter reload];
 
@@ -706,17 +694,16 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 - (void) showBaseVideoPlayer:(NSString *)preUrl {
 	SJVideoPlayerURLAsset *asset = [[SJVideoPlayerURLAsset alloc] initWithURL:[NSURL URLWithString:preUrl]];
 
-	if(_player.isFullScreen) {
+	if(_isFullScreen) {
 		_player.URLAsset = asset;
 
-//		[_player.defaultEdgeControlLayer.bottomAdapter removeAllItems];
-		[self setBottomButtons:YES];
+
 		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 		        if(player.isPlaybackFinished) {
 				[player play];
 			}
 		};
-
+		[self setBottomButtons:YES];
 	}else{
 		_sjbPlayer = SJBaseVideoPlayer.player;
 		_sjbPlayer.rotationManager.disabledAutorotation=YES;
@@ -726,6 +713,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			}
 
 		};
+		_sjbPlayer.pauseWhenAppDidEnterBackground = YES;
+		_sjbPlayer.resumePlaybackWhenScrollAppeared = YES;
 		_player.automaticallyPerformRotationOrFitOnScreen = NO;
 		_player.rotationManager.autorotationSupportedOrientations = NO;
 		_sjbPlayer.view.backgroundColor= [UIColor blackColor];
