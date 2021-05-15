@@ -29,7 +29,7 @@
 #import <SJUIKit/NSAttributedString+SJMake.h>
 
 static SJEdgeControlButtonItemTag const SJNextPlayItemTag = 100;
-
+static NSInteger const buttonItemDefaultSize = 50;
 static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104;
 @interface HNMediaPlayer ()<MCSAssetExportObserver>
 @property (nonatomic, strong) SJVideoPlayer *player;
@@ -38,6 +38,7 @@ static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104
 @property (nonatomic,strong) NSTimer *timer;
 @property (nonatomic,strong) NSString *preUrl;
 @property (nonatomic) BOOL isLandscape;
+@property (nonatomic) BOOL isFullScreen;
 @property (nonatomic) BOOL needDoSeekStatus;
 @property (nonatomic,strong) SJEdgeControlButtonItem *playItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *nextItem;
@@ -370,17 +371,19 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 //	        [context callbackWithRet:@{@"code":@1,@"type":@"rotationScreen",@"status":mgr.isFullscreen?@1:@0,@"msg":@"横(满)竖(小)屏状态切换成功的回调"} err:nil delete:NO];
 
 	        if(self.player.isFullScreen) {
-			[self setBottomButtons:false];
+			self->_isFullScreen =YES;
 			self->_player.automaticallyPerformRotationOrFitOnScreen = YES;
 			self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
 //                self->_player.defaultEdgeControlLayer.showsMoreItem = YES;
 
 		}else{
-
+			self->_isFullScreen=NO;
 			self->_player.automaticallyPerformRotationOrFitOnScreen = NO;
 			self->_player.rotationManager.autorotationSupportedOrientations = NO;
 		}
-
+        
+        [self setBottomButtons:false];
+        NSLog(@"当前的mgr状态 _isFullScreen %@",self->_isFullScreen?@"是":@"否");
 
 
 	};
@@ -584,12 +587,12 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_playItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Play];
 	}
 	NSLog(@"playItem %@",_playItem);
-	_playItem.size = 30;
+	_playItem.size = buttonItemDefaultSize;
 	//下一集按钮
 	if(!_nextItem)
 		_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
 	NSLog(@"nextItem %@",_nextItem);
-	_nextItem.size=30;
+	_nextItem.size = buttonItemDefaultSize;
 	//直播按钮
 	if(!_liveItem)
 		_liveItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_LIVEText];
@@ -629,7 +632,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(!_fullItem)
 		_fullItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJEdgeControlLayerBottomItem_Full];
 	NSLog(@"_fullItem %@",_fullItem);
-	_fullItem.size = 30;
+	_fullItem.size = buttonItemDefaultSize;
 
 
 	[_player.defaultEdgeControlLayer.bottomAdapter reload];
@@ -647,7 +650,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		_playItem.hidden = NO;
 
-		if(_player.isFullScreen) {
+		if(_isFullScreen) {
 			_nextItem.hidden = NO;
 		}else{
 			_nextItem.hidden = YES;
@@ -660,11 +663,31 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	}
 
-	NSLog(@"nextItem hidden %@",_nextItem.hidden?@"是":@"否");
-	NSLog(@"fullScree %@",_player.isFullScreen?@"是":@"否");
-	if(_player.isFullScreen) {
-		[_player.defaultEdgeControlLayer.bottomAdapter reload];
+	SJEdgeControlButtonItem *nextButtonItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
+	if(!nextButtonItem) {
+		NSLog(@"nextItem 没有 这个东西 %@",_nextItem.hidden?@"是":@"否");
+		nextButtonItem = _nextItem;
+
+		NSLog(@"nextItem  添加按钮");
+		[_player.defaultEdgeControlLayer.bottomAdapter insertItem:nextButtonItem rearItem:SJEdgeControlLayerBottomItem_CurrentTime];
+
+	}else{
+		NSLog(@"nextItem 有这个东西 %@",_nextItem.hidden?@"是":@"否");
+
 	}
+
+	if(_isFullScreen) {
+		nextButtonItem.hidden = NO;
+		NSLog(@"nextItem  当前是全屏 %@",_nextItem.hidden?@"是":@"否");
+	}else{
+		nextButtonItem.hidden = YES;
+		NSLog(@"nextItem  当前不是全屏 %@",_nextItem.hidden?@"是":@"否");
+	}
+	NSLog(@"nextItem hidden %@",_nextItem.hidden?@"是":@"否");
+	NSLog(@"_fullScreeItem %@",_isFullScreen?@"是":@"否");
+
+	[_player.defaultEdgeControlLayer.bottomAdapter reload];
+
 }
 - (void) nextPlayClick {
 	if(_preUrl) {
