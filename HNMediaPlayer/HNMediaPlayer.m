@@ -41,6 +41,7 @@ static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104
 @property (nonatomic) BOOL isFullScreen;
 @property (nonatomic) BOOL isLoading;
 @property (nonatomic) BOOL needDoSeekStatus;
+@property (nonatomic) float rate;
 @property (nonatomic,strong) SJEdgeControlButtonItem *playItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *nextItem;
 @property (nonatomic,strong) SJEdgeControlButtonItem *liveItem;
@@ -294,6 +295,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	NSString *userAgent = [param stringValueForKey:@"userAgent" defaultValue:nil];
 	BOOL isLandscape = [param boolValueForKey:@"isLandscape" defaultValue:NO];
 	float seekTimeTo = [param floatValueForKey:@"seekTimeTo" defaultValue:0.0];
+	float rate = [param floatValueForKey:@"rate" defaultValue:1.0];
 	NSLog(@"rect %@",rect);
 	NSLog(@"seekTimeTo %f",seekTimeTo);
 	if(seekTimeTo>0) {
@@ -301,6 +303,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}else{
 		_needDoSeekStatus=NO;
 	}
+	NSLog(@"当前rate %f",rate);
+	if(rate>0 ) {
+		_rate = rate;
+         if(rate>2.0){
+            _rate = 2.0;
+         }
+    }else{
+        _rate = 1.0;
+    }
+    
+    NSLog(@"当前设置rate %f",_rate);
 	NSLog(@"_needDoSeekStatus %@",_needDoSeekStatus?@1:@0);
 	_isLandscape = isLandscape;
 	NSLog(@"初始headers %@",headers);
@@ -317,7 +330,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
 	float height = [rect floatValueForKey:@"height" defaultValue:300];
 
-	_player.automaticallyPerformRotationOrFitOnScreen = NO;
+	_player.automaticallyPerformRotationOrFitOnScreen = SJOrientationMaskAll;
 	_player.usesFitOnScreenFirst = NO;
 
 	_player.allowsRotationInFitOnScreen = NO;
@@ -329,13 +342,13 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_player.usesFitOnScreenFirst = YES;
 		_player.onlyUsedFitOnScreen = YES;
 		_player.allowsRotationInFitOnScreen = YES;
-        _player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+		_player.rotationManager.autorotationSupportedOrientations = NO;
 
 		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
 		        __strong typeof(_self) self = _self;
 		        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} ];
 //		        [context callbackWithRet:@{@"code":@1,@"type":@"fitOnScreen",@"status":mgr.isFitOnScreen?@1:@0,@"msg":@"满屏状态切换成功的回调"} err:nil delete:NO];
-		        if(self->_player.isFitOnScreen) {
+		        if(self->_player.isFitOnScreen || mgr.isFitOnScreen) {
 				NSLog(@"fitOnScreen");
 				self->_isFullScreen=YES;
 				SJEdgeControlButtonItem *customItem = [SJEdgeControlButtonItem.alloc initWithTag:SJEdgeControlLayerTopItem_MoreItem];
@@ -345,25 +358,30 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 				for ( SJEdgeControlButtonItemAction *action in moreItem.actions ) {
 					[customItem addAction:action];
 				}
-				self->_player.allowsRotationInFitOnScreen = YES;
-                self->_player.rotationManager.autorotationSupportedOrientations  = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+				self->_player.rotationManager.autorotationSupportedOrientations  = SJOrientationMaskLandscapeRight | SJOrientationMaskLandscapeLeft;
+				self->_player.usesFitOnScreenFirst = YES;
+				self->_player.onlyUsedFitOnScreen = YES;
+				self->_player.allowsRotationInFitOnScreen = NO;
+
 
 			}else{
 				self->_isFullScreen=NO;
 				NSLog(@"fitOnScreen nonono");
-                self->_player.allowsRotationInFitOnScreen = NO;
-                self->_player.rotationManager.autorotationSupportedOrientations  = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+				self->_player.allowsRotationInFitOnScreen = NO;
+				self->_player.usesFitOnScreenFirst = YES;
+				self->_player.onlyUsedFitOnScreen = YES;
+				self->_player.rotationManager.autorotationSupportedOrientations  = NO;
 				[self->_player.defaultEdgeControlLayer.topAdapter removeItemForTag:SJEdgeControlLayerTopItem_MoreItem];
 			}
 
 
 		        [self->_player.defaultEdgeControlLayer.topAdapter reload];
 
-            [self setBottomButtons];
-            [self setTopButtons];
-            [self setRightButtons];
-            [self setLeftButtons];
-            [self setCenterButtons];
+		        [self setBottomButtons];
+		        [self setTopButtons];
+		        [self setRightButtons];
+		        [self setLeftButtons];
+		        [self setCenterButtons];
 		        NSLog(@"当前的mgr状态 _isFullScreen %@",self->_isFullScreen?@"是":@"否");
 		};
 	}
@@ -374,7 +392,6 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	} else {
 		// Fallback on earlier versions
 	}
-
 	_player.rotationObserver.rotationDidEndExeBlock = ^(id<SJRotationManager>  _Nonnull mgr) {
 	        __strong typeof(_self) self = _self;
 	        NSLog(@"已经全平了");
@@ -384,20 +401,20 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        if(self.player.isFullScreen) {
 			self->_isFullScreen =YES;
 			self->_player.automaticallyPerformRotationOrFitOnScreen = YES;
-			self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+			self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskAll;
 //                self->_player.defaultEdgeControlLayer.showsMoreItem = YES;
 
 		}else{
 			self->_isFullScreen=NO;
 			self->_player.automaticallyPerformRotationOrFitOnScreen = NO;
-			self->_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+			self->_player.rotationManager.autorotationSupportedOrientations = NO;
 		}
 
-        [self setBottomButtons];
-        [self setTopButtons];
-        [self setRightButtons];
-        [self setLeftButtons];
-        [self setCenterButtons];
+	        [self setBottomButtons];
+	        [self setTopButtons];
+	        [self setRightButtons];
+	        [self setLeftButtons];
+	        [self setCenterButtons];
 	        NSLog(@"当前的mgr状态 _isFullScreen %@",self->_isFullScreen?@"是":@"否");
 
 
@@ -423,6 +440,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	        if(player.assetStatus == SJAssetStatusReadyToPlay) {
 
 			[player play];
+			player.playbackController.rate = self->_rate;
 		}else if(player.assetStatus == SJAssetStatusFailed) {
 			NSLog(@"当前链接加载失败，不能播放 %@",self->_player.assetURL);
 
@@ -459,7 +477,8 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	_player.playbackObserver.rateDidChangeExeBlock = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 //        [context callbackWithRet:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]} err:nil delete:NO];
 	        __strong typeof(_self) self = _self;
-	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"ok",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]}];
+	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"播放速率变化了",@"type":@"rateDidChanged",@"rate":[NSString stringWithFormat:@"%.2f",player.rate]}];
+	        self->_rate = player.rate;
 	};
 	_player.view.backgroundColor = UIColor.blackColor;
 	_player.view.frame = CGRectMake(x,y,width,height);
@@ -545,17 +564,17 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		if(title) {
 			asset.title = title;
 		}
-        _isLoading = NO;
+		_isLoading = NO;
 		_player.URLAsset = asset;
 	}else{
-        _isLoading =YES;
+		_isLoading =YES;
 		NSLog(@"url 和 preUrl 相同");
 	}
-    [self setBottomButtons];
-    [self setTopButtons];
-    [self setRightButtons];
-    [self setLeftButtons];
-    [self setCenterButtons];
+	[self setBottomButtons];
+	[self setTopButtons];
+	[self setRightButtons];
+	[self setLeftButtons];
+	[self setCenterButtons];
 	[context callbackWithRet:@{@"code":@1,@"msg":@"播放设置成功！",@"type":@"action"} err:nil delete:YES];
 }
 -(void) seekTimeTo:(float)seekTimeTo {
@@ -607,9 +626,9 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 			_nextItem= [[SJEdgeControlButtonItem alloc] initWithImage:[SJVideoPlayerResourceLoader imageNamed:@"sj_video_player_next"] target:self action:@selector(nextPlayClick) tag:SJNextPlayItemTag];
 			[_player.defaultEdgeControlLayer.bottomAdapter insertItem:_nextItem rearItem:SJEdgeControlLayerBottomItem_CurrentTime];
 		}
-    }else{
-        _nextItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
-    }
+	}else{
+		_nextItem = [_player.defaultEdgeControlLayer.bottomAdapter itemForTag:SJNextPlayItemTag];
+	}
 
 	NSLog(@"nextItem %@",_nextItem);
 	_nextItem.size = buttonItemDefaultSize;
@@ -658,7 +677,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	[_player.defaultEdgeControlLayer.bottomAdapter reload];
 }
 -(void) setBottomButtons {
-    [self getBottomButtons];
+	[self getBottomButtons];
 	if(_isLoading) {
 		_playItem.hidden = YES;
 		_nextItem.hidden = YES;
@@ -669,7 +688,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_fullItem.hidden = YES;
 
 		_player.defaultEdgeControlLayer.bottomAdapter.view.hidden = YES;
-        _player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = YES;
+		_player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = YES;
 
 	}else{
 		_playItem.hidden = NO;
@@ -687,7 +706,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_progressItem.hidden = NO;
 		_fullItem.hidden = NO;
 		_player.defaultEdgeControlLayer.bottomAdapter.view.hidden = NO;
-        _player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = NO;
+		_player.defaultEdgeControlLayer.hiddenBottomProgressIndicator = NO;
 	}
 
 
@@ -702,11 +721,11 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		if(buttonItem) {
 			buttonItem.hidden = YES;
 		}
-        _player.defaultEdgeControlLayer.topAdapter.view.hidden = YES;
+		_player.defaultEdgeControlLayer.topAdapter.view.hidden = YES;
 	}else if(buttonItem && _isFullScreen) {
 		_player.defaultEdgeControlLayer.showsMoreItem = YES;
-        buttonItem.hidden = NO;
-        _player.defaultEdgeControlLayer.topAdapter.view.hidden = NO;
+		buttonItem.hidden = NO;
+		_player.defaultEdgeControlLayer.topAdapter.view.hidden = NO;
 	}
 
 
@@ -714,30 +733,30 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 }
 -(void)setLeftButtons {
 
-    
-    if(_isLoading) {
-        _player.defaultEdgeControlLayer.leftAdapter.view.hidden = YES;
-    }else if(_isFullScreen) {
-        _player.defaultEdgeControlLayer.leftAdapter.view.hidden = NO;
-    }
+
+	if(_isLoading) {
+		_player.defaultEdgeControlLayer.leftAdapter.view.hidden = YES;
+	}else if(_isFullScreen) {
+		_player.defaultEdgeControlLayer.leftAdapter.view.hidden = NO;
+	}
 }
 -(void)setRightButtons {
 
-    
-    if(_isLoading) {
-        _player.defaultEdgeControlLayer.rightAdapter.view.hidden = YES;
-    }else if( _isFullScreen) {
-        _player.defaultEdgeControlLayer.rightAdapter.view.hidden = NO;
-    }
+
+	if(_isLoading) {
+		_player.defaultEdgeControlLayer.rightAdapter.view.hidden = YES;
+	}else if( _isFullScreen) {
+		_player.defaultEdgeControlLayer.rightAdapter.view.hidden = NO;
+	}
 }
 -(void)setCenterButtons {
 
-    
-    if(_isLoading) {
-        _player.defaultEdgeControlLayer.centerAdapter.view.hidden = YES;
-    }else if( _isFullScreen) {
-        _player.defaultEdgeControlLayer.centerAdapter.view.hidden = NO;
-    }
+
+	if(_isLoading) {
+		_player.defaultEdgeControlLayer.centerAdapter.view.hidden = YES;
+	}else if( _isFullScreen) {
+		_player.defaultEdgeControlLayer.centerAdapter.view.hidden = NO;
+	}
 }
 - (void) nextPlayClick {
 	if(_preUrl) {
@@ -754,20 +773,20 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	SJVideoPlayerURLAsset *asset = [[SJVideoPlayerURLAsset alloc] initWithURL:[NSURL URLWithString:preUrl]];
 
 	if(_isFullScreen) {
-        _isLoading = YES;
+		_isLoading = YES;
 		_player.URLAsset = asset;
 		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 		        if(player.isPlaybackFinished) {
 				[player play];
 			}
 		};
-        _player.automaticallyPerformRotationOrFitOnScreen = YES;
-        _player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
-        [self setBottomButtons];
-        [self setTopButtons];
-        [self setRightButtons];
-        [self setLeftButtons];
-        [self setCenterButtons];
+		_player.automaticallyPerformRotationOrFitOnScreen = YES;
+		_player.rotationManager.autorotationSupportedOrientations = SJOrientationMaskLandscapeLeft | SJOrientationMaskLandscapeRight;
+		[self setBottomButtons];
+		[self setTopButtons];
+		[self setRightButtons];
+		[self setLeftButtons];
+		[self setCenterButtons];
 	}else{
 		_sjbPlayer = SJBaseVideoPlayer.player;
 		_sjbPlayer.rotationManager.disabledAutorotation=YES;
@@ -787,7 +806,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		[_sjbPlayer.view mas_makeConstraints:^(MASConstraintMaker *make) {
 		         make.edges.equalTo(_player.view);
 		 }];
-        _sjbPlayer.gestureControl.supportedGestureTypes = SJPlayerGestureTypeMask_None;
+		_sjbPlayer.gestureControl.supportedGestureTypes = SJPlayerGestureTypeMask_None;
 		_sjbPlayer.URLAsset = asset;
 		[_sjbPlayer play];
 	}
