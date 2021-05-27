@@ -342,7 +342,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 		_player.usesFitOnScreenFirst = YES;
 		_player.onlyUsedFitOnScreen = YES;
 		_player.allowsRotationInFitOnScreen = YES;
-        _player.rotationManager.autorotationSupportedOrientations =  SJOrientationMaskPortrait;
+		_player.rotationManager.autorotationSupportedOrientations =  SJOrientationMaskPortrait;
 
 		_player.fitOnScreenObserver.fitOnScreenDidEndExeBlock = ^(id<SJFitOnScreenManager>  _Nonnull mgr) {
 		        __strong typeof(_self) self = _self;
@@ -782,7 +782,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(_isFullScreen) {
 		_isLoading = YES;
 		_player.URLAsset = asset;
-        _player.rate = 1.0;
+		_player.rate = 1.0;
 		_player.playbackObserver.playbackDidFinishExeBlock  = ^(__kindof SJBaseVideoPlayer * _Nonnull player) {
 		        if(player.isPlaybackFinished) {
 				[player play];
