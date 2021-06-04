@@ -243,7 +243,7 @@ static SJEdgeControlButtonItemTag const SJEdgeControlLayerTopItem_MoreItem = 104
 
 
 
-#pragma mark - HNMediaPlayer method
+#pragma mark - HNMediaPlayer 初始化 可以不用调用
 JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 
 	_player = SJVideoPlayer.player;
@@ -255,7 +255,7 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 	return @NO;
 }
 
-
+#pragma mark  播放影片，可以传递loading
 JS_METHOD(play:(UZModuleMethodContext *)context) {
 	if(_player) {
 		[_player stop];
@@ -332,7 +332,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 	_player.automaticallyPerformRotationOrFitOnScreen = SJOrientationMaskAll;
 	_player.usesFitOnScreenFirst = NO;
-
+	_player.onlyUsedFitOnScreen = NO;
 	_player.allowsRotationInFitOnScreen = NO;
 
 	__weak typeof(self) _self = self;
@@ -478,6 +478,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 
 		}
 	        [self sendCustomEvent:@"hnPlayEvent" extra:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)}];
+	        [self sendCustomEvent:@"hnPlaybackStatusEvent" extra:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)}];
 //        [context callbackWithRet:@{@"code":@1,@"msg":@"播放状态变化后的回调",@"type":@"playbackStatusDidChange",@"timeControlStatus":@(player.timeControlStatus)} err:nil delete:NO];
 	};
 
@@ -816,6 +817,7 @@ JS_METHOD(play:(UZModuleMethodContext *)context) {
 	}
 
 }
+#pragma mark 跳转时间
 JS_METHOD(seekTimeTo:(UZModuleMethodContext *)context){
 	if(!_player || (_player.assetStatus != SJAssetStatusReadyToPlay)) {
 		[context callbackWithRet:@{@"msg":@"没有找到播放器或者播放器资源没有准备好，跳转到指定时间操作失败",@"code":@0} err:nil delete:YES];
@@ -833,6 +835,7 @@ JS_METHOD(seekTimeTo:(UZModuleMethodContext *)context){
 		[context callbackWithRet:@{@"msg":@"操作设置成功！",@"code":@1} err:nil delete:YES];
 	}
 }
+#pragma mark 停止。可以设置是否显示loading
 JS_METHOD(stop:(UZModuleMethodContext *)context){
 	if(!_player) {
 		[context callbackWithRet:@{@"msg":@"没有找到播放器，停止操作失败",@"code":@0} err:nil delete:YES];
@@ -867,6 +870,7 @@ JS_METHOD(stop:(UZModuleMethodContext *)context){
 	}
 
 }
+#pragma mark 暂停操作
 
 JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
 	if(!_player) {
@@ -882,6 +886,7 @@ JS_METHOD_SYNC(pause:(UZModuleMethodContext *)context){
 	}
 	return @{@"msg":@"操作出错！",@"code":@-1};
 }
+#pragma mark 恢复播放
 
 JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
 	if(!_player) {
@@ -907,6 +912,8 @@ JS_METHOD_SYNC(resumePlay:(UZModuleMethodContext *)context){
 	return @{@"msg":@"播放成功！",@"type":@"played",@"code":@1};
 }
 
+#pragma mark 是否暂停状态
+
 JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
 	if(!_player) {
 		return @{@"err":@{@"msg":@"没有找到播放器，播放器暂停状态查询失败！",@"code":@0}};
@@ -921,6 +928,7 @@ JS_METHOD_SYNC(isPaused:(UZModuleMethodContext *)context){
 /**
    是否调用过play接口
  */
+#pragma mark 是否播放过了
 JS_METHOD_SYNC(isPlayed:(UZModuleMethodContext *)context){
 	if(!_player) {
 		return @{@"msg":@"没有找到播放器，获取播放状态失败",@"code":@0};
@@ -932,6 +940,8 @@ JS_METHOD_SYNC(isPlayed:(UZModuleMethodContext *)context){
 	return @{@"msg":@"播放器没有调用过play接口",@"code":@-1};
 }
 
+
+#pragma mark 是否播放状态
 /**
    是否播放中
  */
@@ -946,6 +956,7 @@ JS_METHOD_SYNC(isPlaying:(UZModuleMethodContext *)context){
 	return @{@"msg":@"影片没有播放",@"code":@-1};
 }
 
+#pragma mark 是否播放完成
 /**
    是否播放结束
  */
@@ -960,8 +971,56 @@ JS_METHOD_SYNC(isPlaybackFinished:(UZModuleMethodContext *)context){
 	return @{@"msg":@"播放没有结束",@"code":@-1};
 }
 
+#pragma mark 退出全屏
+JS_METHOD(toggleFullScreen:(UZModuleMethodContext *)context){
+	if(!_player) {
+		NSDictionary *ret = @{@"msg":@"没有找到播放器，退出全屏操作失败",@"code":@0};
+		[context callbackWithRet:ret err:nil delete:YES];
+		return;
+	}
+	dispatch_async(dispatch_get_main_queue(), ^{
+		if ( self->_player.onlyUsedFitOnScreen ) {
+			BOOL isFitOnScreen =self->_player.isFitOnScreen;
+			[self->_player setFitOnScreen:!isFitOnScreen];
+			if(isFitOnScreen) {
+				NSDictionary *ret = @{@"msg":@"取消fitOnScreen",@"isFullScreen":@NO,@"isFitOnScreen":@NO,@"code":@1};
+				[context callbackWithRet:ret err:nil delete:NO];
+			}else{
+				NSDictionary *ret = @{@"msg":@"设置fitOnScreen",@"isFullScreen":@YES,@"isFitOnScreen":@YES,@"code":@1};
+				[context callbackWithRet:ret err:nil delete:YES];
+			}
+			return;
+		}
 
-#pragma mark m3u8download
+		if ( self->_player.usesFitOnScreenFirst && !self->_player.isFitOnScreen ) {
+			[self->_player setFitOnScreen:YES];
+			NSDictionary *ret = @{@"msg":@"设置fitOnScreen",@"isFullScreen":@YES,@"isFitOnScreen":@YES,@"code":@1};
+			[context callbackWithRet:ret err:nil delete:YES];
+			return;
+		}
+
+		[self->_player rotate];
+		usleep(300);
+		if(self->_isFullScreen) {
+			NSDictionary *ret = @{@"msg":@"转屏全屏成功",@"code":@1};
+			[context callbackWithRet:ret err:nil delete:NO];
+		}else{
+			NSDictionary *ret = @{@"msg":@"转屏全屏失败",@"code":@0};
+			[context callbackWithRet:ret err:nil delete:YES];
+		}
+	});
+	NSDictionary *ret = @{@"msg":@"全屏操作命令执行成功",@"code":@1};
+	[context callbackWithRet:ret err:nil delete:YES];
+}
+#pragma mark 是否全屏
+JS_METHOD_SYNC(isFullScreen:(UZModuleMethodContext *)context){
+	if(!_player) {
+		return @{@"msg":@"没有找到播放器，获取全屏状态失败",@"code":@0};
+	}
+	return @{@"msg":@"获取全屏状态成功",@"isFullScreen":@(_isFullScreen),@"isFitOnScreen":@(_player.isFitOnScreen),@"isRotationScreen":@(_player.isFullScreen),@"code":@1};
+}
+
+#pragma mark m3u8download 下载
 
 JS_METHOD_SYNC(download:(UZModuleMethodContext *)context){
 	NSDictionary *param = context.param;
@@ -1060,6 +1119,7 @@ JS_METHOD_SYNC(download:(UZModuleMethodContext *)context){
 	}
 	return @{@"msg":@"添加成功",@"code":@0};
 }
+#pragma mark 播放下载地址
 
 JS_METHOD(playDownloadUrl:(UZModuleMethodContext *)context){
 	if(_player) {
@@ -1124,6 +1184,7 @@ JS_METHOD(playDownloadUrl:(UZModuleMethodContext *)context){
 	[context callbackWithRet:@{@"code":@(1),@"msg":@"操作成功！"} err:nil delete:YES];
 }
 
+#pragma mark 回复下载
 JS_METHOD_SYNC(resumeDownUrl:(UZModuleMethodContext *)context){
 
 	NSDictionary *param = context.param;
@@ -1135,6 +1196,7 @@ JS_METHOD_SYNC(resumeDownUrl:(UZModuleMethodContext *)context){
 	return @{@"msg":@"恢复成功",@"code":@1};
 }
 
+#pragma mark 暂停下载
 JS_METHOD_SYNC(pauseDownloadUrl:(UZModuleMethodContext *)context){
 	NSDictionary *param = context.param;
 	NSString *url = [param stringValueForKey:@"url" defaultValue:nil];
@@ -1147,6 +1209,7 @@ JS_METHOD_SYNC(pauseDownloadUrl:(UZModuleMethodContext *)context){
 	}
 }
 
+#pragma mark 删除下载
 JS_METHOD_SYNC(deleteDownloadUrl:(UZModuleMethodContext *)context){
 	NSDictionary *param = context.param;
 	NSLog(@"deleteDownloadUrl %@",param);
@@ -1170,7 +1233,7 @@ JS_METHOD_SYNC(deleteDownloadUrl:(UZModuleMethodContext *)context){
 	}
 
 }
-
+#pragma 获取视频列表
 JS_METHOD_SYNC(getVideoList:(UZModuleMethodContext *)context){
 	NSDictionary *param = context.param;
 	NSString *pageStrint = [param stringValueForKey:@"page" defaultValue:nil];
@@ -1202,6 +1265,8 @@ JS_METHOD_SYNC(getVideoList:(UZModuleMethodContext *)context){
 		return @{@"msg":@"没有要删除的数据",@"code":@0};
 	}
 }
+
+#pragma mark 获取视频剧集列表
 JS_METHOD_SYNC(getVideoItemList:(UZModuleMethodContext *)context){
 	SJSQLite3Logger.shared.enabledConsoleLog = YES;
 	NSDictionary *param = context.param;
@@ -1247,6 +1312,7 @@ JS_METHOD_SYNC(getVideoItemList:(UZModuleMethodContext *)context){
 	}
 
 }
+
 #pragma mark - sqlite3data
 @synthesize sqlite3 = _sqlite3;
 - (SJSQLite3 *)sqlite3 {
